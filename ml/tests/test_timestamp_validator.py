@@ -16,14 +16,14 @@ def test_timestamp_validator_passes_valid_timestamps(orders_df: pd.DataFrame) ->
 
 def test_timestamp_validator_detects_invalid_values(orders_df: pd.DataFrame) -> None:
     df = orders_df.copy()
-    df.loc[0, "order_timestamp"] = "not-a-date"
+    df.loc[0, "timestamp"] = "not-a-date"
     result = TimestampValidator().validate(df, ORDERS_SCHEMA)
     assert result.passed is False
-    assert result.details["per_column"]["order_timestamp"]["invalid_count"] == 1
+    assert result.details["per_column"]["timestamp"]["invalid_count"] == 1
 
 
 def test_timestamp_validator_ignores_nullable_nulls(orders_df: pd.DataFrame) -> None:
     df = orders_df.copy()
-    df.loc[0, "pickup_timestamp"] = None
+    df.loc[0, "timestamp"] = None
     result = TimestampValidator().validate(df, ORDERS_SCHEMA)
-    assert result.details["per_column"]["pickup_timestamp"]["invalid_count"] == 0
+    assert result.details["per_column"]["timestamp"]["invalid_count"] == 0

@@ -26,7 +26,7 @@ def test_foreign_key_validator_detects_orphan_restaurant(
     reference_ids: dict[str, set[str]],
 ) -> None:
     df = orders_df.copy()
-    df.loc[0, "restaurant_id"] = "R999"
+    df.loc[0, "restaurant_id"] = 999
     result = ForeignKeyValidator().validate(
         df, ORDERS_SCHEMA, reference_ids=reference_ids
     )
@@ -39,7 +39,7 @@ def test_foreign_key_validator_detects_orphan_rider(
     reference_ids: dict[str, set[str]],
 ) -> None:
     df = orders_df.copy()
-    df.loc[0, "rider_id"] = "D999"
+    df.loc[0, "rider_id"] = 999
     result = ForeignKeyValidator().validate(
         df, ORDERS_SCHEMA, reference_ids=reference_ids
     )

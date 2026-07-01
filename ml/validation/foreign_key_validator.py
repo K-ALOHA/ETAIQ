@@ -41,12 +41,31 @@ class ForeignKeyValidator(BaseValidator):
         total_checked = 0
         total_orphans = 0
 
+        def normalize_key(value: Any) -> str | None:
+            if pd.isna(value):
+                return None
+            text = str(value).strip()
+            if not text:
+                return None
+            try:
+                number = float(text)
+                if number.is_integer():
+                    return str(int(number))
+                return str(number)
+            except (TypeError, ValueError):
+                return text
+
         for fk_column, (ref_id_col, ref_dataset) in FOREIGN_KEY_MAP.items():
             if fk_column not in df.columns:
                 continue
 
-            ref_set = reference_ids.get(ref_dataset, set())
-            values = df[fk_column].dropna().astype(str)
+            ref_set = {
+                normalize_key(key)
+                for key in reference_ids.get(ref_dataset, set())
+                if normalize_key(key) is not None
+            }
+            values = df[fk_column].dropna().apply(normalize_key)
+            values = values[values.notna()]
             total_checked += len(values)
 
             if not ref_set:

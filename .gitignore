@@ -74,3 +74,4 @@ ml/reports/*
 
 # Misc
 *.pem
+.cursor/

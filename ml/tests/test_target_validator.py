@@ -18,20 +18,20 @@ def test_target_validator_detects_negative_delivery_time(
     orders_df: pd.DataFrame,
 ) -> None:
     df = orders_df.copy()
-    df.loc[0, "delivery_time_minutes"] = -5.0
+    df.loc[0, "actual_delivery_time_min"] = -5.0
     result = TargetValidator().validate(df, ORDERS_SCHEMA)
     assert result.passed is False
-    assert result.details["per_column"]["delivery_time_minutes"]["negative_count"] == 1
+    assert result.details["per_column"]["actual_delivery_time_min"]["negative_count"] == 1
 
 
 def test_target_validator_detects_impossible_delivery_time(
     orders_df: pd.DataFrame,
 ) -> None:
     df = orders_df.copy()
-    df.loc[0, "delivery_time_minutes"] = 5000.0
+    df.loc[0, "actual_delivery_time_min"] = 5000.0
     result = TargetValidator().validate(df, ORDERS_SCHEMA)
     assert result.passed is False
     assert (
-        result.details["per_column"]["delivery_time_minutes"]["impossible_high_count"]
+        result.details["per_column"]["actual_delivery_time_min"]["impossible_high_count"]
         == 1
     )

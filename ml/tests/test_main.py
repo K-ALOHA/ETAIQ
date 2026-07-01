@@ -16,35 +16,42 @@ def test_run_validation_end_to_end(tmp_path: Path) -> None:
 
     restaurants = pd.DataFrame(
         {
-            "restaurant_id": ["R001"],
-            "restaurant_name": ["Test Kitchen"],
-            "latitude": [12.97],
-            "longitude": [77.59],
-            "city": ["Bangalore"],
-            "is_active": [True],
+            "id": [1],
+            "name": ["Test Kitchen"],
+            "lat": [12.97],
+            "lon": [77.59],
+            "cuisine": ["Italian"],
+            "avg_rating": [4.5],
+            "prep_capacity": [15],
+            "manager_contact": ["+91-9999999999"],
         }
     )
     riders = pd.DataFrame(
         {
-            "rider_id": ["D001"],
-            "rider_name": ["Rider"],
-            "latitude": [12.98],
-            "longitude": [77.60],
+            "id": [1],
+            "lat": [12.98],
+            "lon": [77.60],
             "vehicle_type": ["bike"],
-            "status": ["active"],
+            "completed_orders": [10],
+            "shift_hours": [6.0],
+            "current_load": [1],
+            "rider_call_sign": ["R-001"],
         }
     )
     orders = pd.DataFrame(
         {
-            "order_id": ["O001"],
-            "restaurant_id": ["R001"],
-            "rider_id": ["D001"],
-            "order_timestamp": ["2026-01-01T10:00:00Z"],
-            "pickup_timestamp": ["2026-01-01T10:10:00Z"],
-            "delivery_timestamp": ["2026-01-01T10:35:00Z"],
-            "delivery_time_minutes": [25.0],
-            "customer_latitude": [12.99],
-            "customer_longitude": [77.58],
+            "id": [1],
+            "restaurant_id": [1],
+            "rider_id": [1],
+            "drop_lat": [12.99],
+            "drop_lon": [77.58],
+            "order_size": [2],
+            "order_value": [25.0],
+            "timestamp": ["2026-01-01T10:00:00Z"],
+            "promised_eta": [15],
+            "actual_delivery_time_min": [25.0],
+            "order_status": ["delivered"],
+            "promo_code_used": ["BLR10"],
         }
     )
 

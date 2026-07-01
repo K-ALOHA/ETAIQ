@@ -34,8 +34,8 @@ def test_validation_engine_detects_issues(
     schemas: dict,
 ) -> None:
     bad_orders = orders_df.copy()
-    bad_orders.loc[0, "delivery_time_minutes"] = -10.0
-    bad_orders.loc[1, "restaurant_id"] = "UNKNOWN"
+    bad_orders.loc[0, "actual_delivery_time_min"] = -10.0
+    bad_orders.loc[1, "restaurant_id"] = 999
 
     summary = ValidationEngine().run(
         {

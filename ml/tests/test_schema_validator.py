@@ -17,11 +17,11 @@ def test_schema_validator_passes_valid_dataframe(restaurants_df: pd.DataFrame) -
 
 
 def test_schema_validator_detects_missing_columns(restaurants_df: pd.DataFrame) -> None:
-    df = restaurants_df.drop(columns=["latitude", "longitude"])
+    df = restaurants_df.drop(columns=["lat", "lon"])
     result = SchemaValidator().validate(df, RESTAURANTS_SCHEMA)
     assert result.passed is False
-    assert "latitude" in result.details["missing_columns"]
-    assert "longitude" in result.details["missing_columns"]
+    assert "lat" in result.details["missing_columns"]
+    assert "lon" in result.details["missing_columns"]
 
 
 def test_schema_validator_detects_extra_columns(restaurants_df: pd.DataFrame) -> None:
@@ -35,6 +35,6 @@ def test_schema_validator_detects_invalid_latitude_dtype(
     restaurants_df: pd.DataFrame,
 ) -> None:
     df = restaurants_df.copy()
-    df["latitude"] = ["not-a-float", "also-bad"]
+    df["lat"] = ["not-a-float", "also-bad"]
     result = SchemaValidator().validate(df, RESTAURANTS_SCHEMA)
-    assert "latitude" in result.details["dtype_issues"]
+    assert "lat" in result.details["dtype_issues"]
