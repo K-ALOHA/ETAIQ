@@ -1,0 +1,68 @@
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/Dockerfile.backend
+      target: development
+    container_name: etaiq-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://etaiq:etaiq@postgres:5432/etaiq}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ../backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - etaiq-network
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/Dockerfile.frontend
+      target: development
+    container_name: etaiq-frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../.env
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - etaiq-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: etaiq-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: etaiq
+      POSTGRES_PASSWORD: etaiq
+      POSTGRES_DB: etaiq
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U etaiq -d etaiq"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - etaiq-network
+
+volumes:
+  postgres_data:
+
+networks:
+  etaiq-network:
+    driver: bridge

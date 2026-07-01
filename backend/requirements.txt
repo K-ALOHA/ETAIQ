@@ -1,0 +1,16 @@
+# =============================================================================
+# ETAIQ Dependency Entry Point
+# Python: 3.11.x
+#
+# Layered requirements live in backend/requirements/:
+#   base.txt  — API, database, security, observability, validation
+#   ml.txt    — machine learning, explainability, visualization
+#   prod.txt  — base + ml (production runtime)
+#   dev.txt   — prod + testing and tooling (local development)
+#
+# Install targets:
+#   pip install -r requirements/prod.txt   # production / CI build verification
+#   pip install -r requirements/dev.txt    # local development (recommended)
+# =============================================================================
+
+-r requirements/dev.txt

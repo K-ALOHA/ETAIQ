@@ -1,0 +1,8 @@
+# =============================================================================
+# ETAIQ Production Dependencies
+# Python: 3.11.x
+# Install: pip install -r requirements/prod.txt
+# =============================================================================
+
+-r base.txt
+-r ml.txt

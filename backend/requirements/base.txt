@@ -1,0 +1,33 @@
+# =============================================================================
+# ETAIQ Base Dependencies — API, data layer, security, observability
+# Python: 3.11.x
+# =============================================================================
+
+# --- Backend (API & Data Layer) ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+sqlalchemy==2.0.36
+alembic==1.14.0
+psycopg[binary]==3.2.3
+
+# --- Monitoring & Observability ---
+loguru==0.7.3
+prometheus-client==0.21.1
+structlog==24.4.0  # required by app.core.logging
+
+# --- Utilities ---
+python-dotenv==1.0.1
+joblib==1.4.2
+orjson==3.10.12
+rich==13.9.4
+
+# --- Security ---
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+bcrypt==4.2.1
+
+# --- Data Validation ---
+pandera==0.20.4
+great-expectations==1.2.5

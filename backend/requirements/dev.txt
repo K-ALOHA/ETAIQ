@@ -1,0 +1,23 @@
+# =============================================================================
+# ETAIQ Development Dependencies
+# Python: 3.11.x
+# Install: pip install -r requirements/dev.txt
+# =============================================================================
+
+-r prod.txt
+
+# --- Testing ---
+pytest==8.3.4
+pytest-asyncio==0.24.0
+httpx==0.28.1
+
+# --- Coverage ---
+pytest-cov==6.0.0
+
+# --- Formatting ---
+black==24.10.0
+ruff==0.8.4
+isort==5.13.2
+
+# --- Typing ---
+mypy==1.13.0
