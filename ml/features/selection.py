@@ -51,6 +51,30 @@ class FeatureSelectionEngine:
         current_train, correlated_features = self._remove_correlated_features(current_train, threshold=0.95)
         correlated_removed = len(correlated_features)
 
+        if current_train.empty:
+            self.logger.info("No feature columns remain after preprocessing; skipping feature selection")
+            selected_feature_names = list(scaled_X_train.columns)
+            selected_X_train = scaled_X_train[selected_feature_names].copy()
+            selected_X_test = scaled_X_test[selected_feature_names].copy()
+            importance_df = pd.DataFrame(
+                {
+                    "feature_name": selected_feature_names,
+                    "importance": 0.0,
+                }
+            )
+            importance_df["rank"] = range(1, len(importance_df) + 1)
+            self._export_feature_importance(importance_df)
+            self._export_selected_features(importance_df)
+            self._export_model()
+            self._print_summary(
+                original_features=len(original_features),
+                constant_removed=constant_removed,
+                correlated_removed=correlated_removed,
+                selected_features=len(selected_feature_names),
+                top_features=importance_df["feature_name"].head(20).tolist(),
+            )
+            return selected_X_train, selected_X_test
+
         self.model = RandomForestRegressor(random_state=42, n_estimators=100)
         self.model.fit(current_train, y_train)
         self.logger.info("Feature importance calculated", features=current_train.shape[1])

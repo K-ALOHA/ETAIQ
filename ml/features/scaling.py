@@ -119,8 +119,10 @@ class ScalingEngine:
 
     def _resolve_onehot_columns(self, columns: list[str]) -> list[str]:
         result: list[str] = []
+        normalized_columns = [str(column) for column in columns]
         for feature_name in self.onehot_features:
-            result.extend([column for column in columns if column.startswith(f"{feature_name}_")])
+            prefix = f"{str(feature_name)}_"
+            result.extend([column for column in normalized_columns if str(column).startswith(prefix)])
         return result
 
     def _scale_dataframe(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -137,5 +139,5 @@ class ScalingEngine:
         return result
 
     def _is_identifier(self, column: str) -> bool:
-        lower = column.lower()
-        return lower == "id" or lower.endswith("_id") or "_id" in lower
+        name = str(column).lower()
+        return name == "id" or name.endswith("_id") or "_id" in name

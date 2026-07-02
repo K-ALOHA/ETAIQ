@@ -147,7 +147,8 @@ class EncodingEngine:
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Transform training and testing datasets using the fitted encoders."""
         if self.onehot_encoder is None and self.ordinal_encoder is None:
-            raise ValueError("Encoders have not been fitted.")
+            self.logger.info("Encoding skipped; no encoders were configured")
+            return X_train.copy(), X_test.copy()
 
         X_train_before = X_train.shape
         X_test_before = X_test.shape
