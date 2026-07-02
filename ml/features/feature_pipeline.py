@@ -192,6 +192,8 @@ class FeaturePipeline:
         self.validate_data()
         self.merge_data()
         self.verify_merge()
+        self.registry.inspect_features(self.training_df)
+        self.registry.export_registry()
         if self.training_df is None:
             raise ValueError("Training dataframe could not be created.")
         return self.training_df

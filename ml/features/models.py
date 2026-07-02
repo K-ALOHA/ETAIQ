@@ -15,6 +15,8 @@ class FeatureMetadata:
     name: str
     source: str = "unknown"
     feature_type: str = "unknown"
+    original_dtype: str = "unknown"
+    recommended_action: str = ""
     description: str = ""
     created_at: datetime = field(default_factory=datetime.utcnow)
 

@@ -8,7 +8,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PROCESSED_DIR = REPO_ROOT / "ml" / "data" / "processed"
 DEFAULT_OUTPUT_FEATURE_DIR = REPO_ROOT / "ml" / "features" / "output"
-DEFAULT_FEATURE_REGISTRY_PATH = REPO_ROOT / "ml" / "features" / "feature_registry.json"
+DEFAULT_FEATURE_REGISTRY_PATH = REPO_ROOT / "ml" / "data" / "features" / "feature_registry.csv"
 
 
 @dataclass(frozen=True)
