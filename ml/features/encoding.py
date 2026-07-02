@@ -35,10 +35,15 @@ class EncodingEngine:
         self.onehot_features: list[str] = []
         self.ordinal_features: list[str] = []
         self.non_encoded_features: list[str] = []
+        self.high_cardinality_skipped_features: list[str] = []
 
-    def prepare_encoding_plan(self, feature_registry: FeatureRegistry) -> EncodingPlan:
+    def prepare_encoding_plan(
+        self,
+        feature_registry: FeatureRegistry,
+        X_train: pd.DataFrame | None = None,
+    ) -> EncodingPlan:
         """Inspect the feature registry and generate an encoding plan."""
-        plan = self.registry.create_plan(feature_registry)
+        plan = self.registry.create_plan(feature_registry, X_train=X_train)
         self.logger.info("Encoding plan generated", plan_size=len(plan))
         return plan
 
@@ -88,13 +93,44 @@ class EncodingEngine:
             if column not in self.onehot_features + self.ordinal_features
         ]
 
+        self.high_cardinality_skipped_features = [
+            entry.feature_name
+            for entry in plan.entries
+            if entry.encoding_strategy == self.registry.SKIPPED_HIGH_CARDINALITY
+        ]
+
+        self.logger.info("Feature count before encoding", feature_count=len(X_train.columns))
+
         self.logger.info(
             "Encoding started",
             onehot_features=len(self.onehot_features),
             ordinal_features=len(self.ordinal_features),
+            high_cardinality_skipped=len(self.high_cardinality_skipped_features),
+        )
+        if self.high_cardinality_skipped_features:
+            self.logger.info(
+                "High-cardinality skipped features",
+                features=self.high_cardinality_skipped_features,
+            )
+
+        self._print_encoding_summary(
+            feature_count_before=len(X_train.columns),
+            feature_count_after=len(X_train.columns),
+            onehot_features=self.onehot_features,
+            ordinal_features=self.ordinal_features,
+            skipped_features=self.high_cardinality_skipped_features,
         )
 
+        for feature_name in self.high_cardinality_skipped_features:
+            reason = self._get_high_cardinality_reason(feature_name, X_train)
+            self.logger.info(
+                "High-cardinality column skipped",
+                feature_name=feature_name,
+                reason=reason,
+            )
+
         if self.onehot_features:
+            assert all(feature not in self.high_cardinality_skipped_features for feature in self.onehot_features)
             self.onehot_encoder = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
             self.onehot_encoder.fit(X_train[self.onehot_features].astype(str))
             self.logger.info("OneHot fitted", features=len(self.onehot_features))
@@ -135,6 +171,13 @@ class EncodingEngine:
             onehot_features=len(self.onehot_features),
             ordinal_features=len(self.ordinal_features),
         )
+        self._print_encoding_summary(
+            feature_count_before=X_train.shape[1],
+            feature_count_after=encoded_X_train.shape[1],
+            onehot_features=self.onehot_features,
+            ordinal_features=self.ordinal_features,
+            skipped_features=self.high_cardinality_skipped_features,
+        )
         return encoded_X_train, encoded_X_test
 
     def _transform_dataframe(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -158,6 +201,38 @@ class EncodingEngine:
 
         encoded = pd.concat(result_frames, axis=1)
         return encoded
+
+    def _get_high_cardinality_reason(self, feature_name: str, X_train: pd.DataFrame) -> str | None:
+        if feature_name not in X_train.columns:
+            return None
+        total_rows = len(X_train)
+        if total_rows == 0:
+            return None
+        unique_values = int(X_train[feature_name].nunique(dropna=False))
+        reasons: list[str] = []
+        if unique_values > 100:
+            reasons.append(f"unique_values={unique_values} > 100")
+        if (unique_values / total_rows) > 0.10:
+            reasons.append(f"ratio={unique_values / total_rows:.2%} > 10%")
+        return "; ".join(reasons) if reasons else None
+
+    def _print_encoding_summary(
+        self,
+        feature_count_before: int,
+        feature_count_after: int,
+        onehot_features: list[str],
+        ordinal_features: list[str],
+        skipped_features: list[str],
+    ) -> None:
+        print("=" * 40)
+        print("Encoding Summary")
+        print("=" * 40)
+        print(f"OneHot features: {len(onehot_features)}")
+        print(f"Ordinal features: {len(ordinal_features)}")
+        print(f"High-cardinality skipped features: {len(skipped_features)}")
+        print(f"Feature count before encoding: {feature_count_before}")
+        print(f"Feature count after encoding: {feature_count_after}")
+        print("=" * 40)
 
     def export_encoders(self) -> tuple[str, str]:
         """Persist the fitted encoders to disk for inference."""

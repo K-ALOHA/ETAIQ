@@ -23,8 +23,17 @@ def test_encoding_execution_fits_transforms_and_persists_encoders() -> None:
     X_train, X_test, y_train, y_test = split_engine.split_dataset(engineered_dataset)
 
     encoding_engine = EncodingEngine(config=config, logger=logger)
-    plan = encoding_engine.prepare_encoding_plan(registry.list_features())
+    plan = encoding_engine.prepare_encoding_plan(registry.list_features(), X_train=X_train)
     encoding_engine.export_encoding_plan(plan)
+
+    assert any(
+        entry.feature_name == "rider_call_sign" and entry.encoding_strategy == "Skipped (High Cardinality)"
+        for entry in plan.entries
+    )
+    assert any(
+        entry.feature_name == "manager_contact" and entry.encoding_strategy == "Skipped (High Cardinality)"
+        for entry in plan.entries
+    )
 
     encoding_engine.fit(X_train, plan=plan)
     encoded_X_train, encoded_X_test = encoding_engine.transform(X_train, X_test)
