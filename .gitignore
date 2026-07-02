@@ -75,3 +75,9 @@ ml/reports/*
 # Misc
 *.pem
 .cursor/
+
+# Generated datasets
+ml/data/features/engineered_training_dataset.csv
+
+# Trained models
+ml/models/**/*.pkl

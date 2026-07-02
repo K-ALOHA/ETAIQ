@@ -7,6 +7,9 @@ import re
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+from pandas.api.types import is_object_dtype, is_string_dtype
+
 from .config import FeatureEngineeringConfig
 from .logging_config import FeatureEngineeringLogger
 from .models import FeatureMetadata, FeatureRegistry
@@ -142,8 +145,11 @@ class FeatureRegistryManager:
 
     def _is_categorical(self, series: Any) -> bool:
         try:
-            dtype_name = str(series.dtype).lower()
-            return dtype_name in {"object", "string", "category"}
+            return (
+                isinstance(series.dtype, pd.CategoricalDtype)
+                or is_string_dtype(series.dtype)
+                or is_object_dtype(series.dtype)
+            )
         except AttributeError:
             return False
 

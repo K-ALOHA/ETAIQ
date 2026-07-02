@@ -26,7 +26,7 @@ class FeaturePipeline:
         self.config = config or FeatureEngineeringConfig()
         self.logger = logger or FeatureEngineeringLogger()
         self.registry = registry or FeatureRegistryManager(config=self.config, logger=self.logger)
-        self.engine = engine or FeatureEngineeringEngine(config=self.config, logger=self.logger)
+        self.engine = engine or FeatureEngineeringEngine(config=self.config, logger=self.logger, registry=self.registry)
         self.state = PipelineState()
         self.restaurants_df: pd.DataFrame | None = None
         self.riders_df: pd.DataFrame | None = None
@@ -186,6 +186,33 @@ class FeaturePipeline:
         """Placeholder for exporting engineered features."""
         self.logger.info("Placeholder: export")
 
+    def export_engineered_dataset(self) -> None:
+        """Export the fully engineered training dataset to a CSV file."""
+        if self.training_df is None:
+            raise ValueError("Training dataframe is not available for export.")
+
+        export_path = Path(self.config.project_root) / "ml" / "data" / "features" / "engineered_training_dataset.csv"
+        export_path.parent.mkdir(parents=True, exist_ok=True)
+
+        self.training_df.to_csv(export_path, index=False)
+
+        rows, columns = self.training_df.shape
+        self.logger.info(
+            "Engineered dataset exported",
+            rows=rows,
+            columns=columns,
+            export_path=str(export_path),
+        )
+
+        print("=" * 40)
+        print("Export Summary")
+        print("=" * 40)
+        print("Engineered Dataset Saved")
+        print(f"Rows: {rows}")
+        print(f"Columns: {columns}")
+        print(f"Export Path: {export_path}")
+        print("=" * 40)
+
     def run(self) -> pd.DataFrame:
         """Run the pipeline steps and return the merged training dataframe."""
         self.load_data()
@@ -194,6 +221,11 @@ class FeaturePipeline:
         self.verify_merge()
         self.registry.inspect_features(self.training_df)
         self.registry.export_registry()
+        self.training_df = self.engine.create_temporal_features(self.training_df)
+        self.training_df = self.engine.create_geographical_features(self.training_df)
+        self.training_df = self.engine.create_operational_features(self.training_df)
+        self.training_df = self.engine.create_business_features(self.training_df)
+        self.export_engineered_dataset()
         if self.training_df is None:
             raise ValueError("Training dataframe could not be created.")
         return self.training_df

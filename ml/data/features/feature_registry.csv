@@ -9,21 +9,21 @@ order_value,Numerical,float64,Scale
 timestamp,Datetime,str,Extract Features
 promised_eta,Numerical,float64,Scale
 actual_delivery_time_min,Target,float64,Prediction Target
-order_status,Unknown,str,Review
-promo_code_used,Unknown,str,Review
+order_status,Categorical,str,Encode
+promo_code_used,Categorical,str,Encode
 id_restaurant,Identifier,int64,Drop
-name,Unknown,str,Review
+name,Categorical,str,Encode
 lat,GPS,float64,Distance Engineering
 lon,GPS,float64,Distance Engineering
-cuisine,Unknown,str,Review
+cuisine,Categorical,str,Encode
 avg_rating,Numerical,float64,Scale
 prep_capacity,Numerical,int64,Scale
-manager_contact,Unknown,str,Review
+manager_contact,Categorical,str,Encode
 id_rider,Identifier,int64,Drop
 lat_rider,GPS,float64,Distance Engineering
 lon_rider,GPS,float64,Distance Engineering
-vehicle_type,Unknown,str,Review
+vehicle_type,Categorical,str,Encode
 completed_orders,Numerical,int64,Scale
 shift_hours,Numerical,float64,Scale
 current_load,Numerical,int64,Scale
-rider_call_sign,Unknown,str,Review
+rider_call_sign,Categorical,str,Encode
