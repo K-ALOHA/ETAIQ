@@ -21,9 +21,15 @@ def main() -> None:
     engine = FeatureEngineeringEngine(config=config, logger=logger)
 
     registry.initialize()
-    pipeline.run()
+    print("Loading datasets...")
+    print("Validating...")
+    print("Merging...")
+    training_df = pipeline.run()
     engine.run()
 
+    print("Merge Summary")
+    print(f"Training DataFrame Shape: {training_df.shape}")
+    print("READY FOR FEATURE ENGINEERING")
     print("Configuration Loaded")
     print("Logger Ready")
     print("Registry Ready")
