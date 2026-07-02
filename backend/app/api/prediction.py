@@ -9,9 +9,10 @@ from typing import Any
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Request, status
 
+from app.api.models import registry_engine
 from app.core.config import get_settings
 from app.core.logging import get_logger
-from app.schemas.prediction import ModelInfoResponse, PredictionRequest, PredictionResponse, HealthResponse
+from app.schemas.prediction import HealthResponse, ModelInfoResponse, PredictionRequest, PredictionResponse
 from ml.training.prediction_pipeline import PredictionPipelineEngine
 
 logger = get_logger(__name__)
@@ -121,10 +122,10 @@ async def predict(request: Request) -> PredictionResponse:
     "/models",
     response_model=ModelInfoResponse,
     summary="List available persisted models",
-    description="Returns metadata about the currently available persisted models.",
+    description="Returns the legacy model metadata payload expected by the prediction API and includes registry details.",
 )
 async def list_models() -> ModelInfoResponse:
-    """Return metadata for the latest available model artifact."""
+    """Return the legacy model metadata response while exposing registry details for management endpoints."""
     logger.info("models_requested", endpoint="/api/v1/models")
 
     models_dir = Path(settings.model_path)
@@ -138,11 +139,23 @@ async def list_models() -> ModelInfoResponse:
     if metadata_path.exists():
         created_at = metadata_path.stat().st_mtime
 
+    registered_models = registry_engine.list_models()
+
     return ModelInfoResponse(
         current_model=latest_model.stem,
         version=int(latest_model.stem.split("_v", maxsplit=1)[1]) if "_v" in latest_model.stem else 1,
         created_at=str(created_at),
         available_models=[path.stem for path in model_files],
+        models=[
+            {
+                "model_name": model.model_name,
+                "version": model.version,
+                "artifact_path": str(model.artifact_path),
+                "status": model.status,
+            }
+            for model in registered_models
+        ],
+        count=len(registered_models),
     )
 
 

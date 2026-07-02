@@ -178,9 +178,27 @@ class CleaningEngine:
             {dec.get("dataset_id") for dec in all_decisions if dec.get("dataset_id")}
         )
 
-        # Filter out any unsupported legacy transformation actions that should not
-        # be executed inside the cleaning engine.
-        all_decisions = self._validate_manifest_actions(all_decisions)
+        # Keep the raw manifest decisions so we can preserve approval intent
+        # for foreign key columns even when their explicit DROP/REPAIR actions are
+        # filtered out as unsupported by the cleaning engine.
+        raw_decisions = all_decisions
+
+        # Filter approved decisions first, then validate supported actions.
+        decisions_by_dataset: dict[str, list[dict[str, Any]]] = {}
+        fk_action_columns: set[str] = set()
+        approved_decisions: list[dict[str, Any]] = []
+
+        for dec in raw_decisions:
+            if force_approve_all or dec.get("status") == "APPROVED":
+                approved_decisions.append(dec)
+                action = str(dec.get("action", "")).upper()
+                dataset_id = dec.get("dataset_id")
+                column = dec.get("column")
+                if dataset_id == "orders" and column in {"restaurant_id", "rider_id"}:
+                    if action in {"REPAIR_FOREIGN_KEY", "DROP"}:
+                        fk_action_columns.add(column)
+
+        all_decisions = self._validate_manifest_actions(approved_decisions)
 
         if not all_decisions:
             logger.warning("no_supported_decisions_found_in_manifest")
@@ -225,13 +243,27 @@ class CleaningEngine:
         else:
             all_dataset_ids = list(SCHEMA_BY_NAME)
 
-        # Filter and group decisions to only the approved ones (or all if force_approve_all)
+        # Filter approved decisions first, then validate supported actions.
         decisions_by_dataset: dict[str, list[dict[str, Any]]] = {}
-        for dec in all_decisions:
+        fk_action_columns: set[str] = set()
+        approved_decisions: list[dict[str, Any]] = []
+
+        for dec in raw_decisions:
             if force_approve_all or dec.get("status") == "APPROVED":
-                ds = dec.get("dataset_id")
-                if ds:
-                    decisions_by_dataset.setdefault(ds, []).append(dec)
+                approved_decisions.append(dec)
+                action = str(dec.get("action", "")).upper()
+                dataset_id = dec.get("dataset_id")
+                column = dec.get("column")
+                if dataset_id == "orders" and column in {"restaurant_id", "rider_id"}:
+                    if action in {"REPAIR_FOREIGN_KEY", "DROP"}:
+                        fk_action_columns.add(column)
+
+        all_decisions = self._validate_manifest_actions(approved_decisions)
+
+        for dec in all_decisions:
+            ds = dec.get("dataset_id")
+            if ds:
+                decisions_by_dataset.setdefault(ds, []).append(dec)
 
         # 2. Pre-load reference primary keys for referential integrity cleaning
         reference_keys = self._track_step(
@@ -383,12 +415,7 @@ class CleaningEngine:
                 for fk_column in fk_repair_columns:
                     if fk_column not in df.columns:
                         continue
-                    already_repaired = any(
-                        str(dec.get("action", "")).upper() == "REPAIR_FOREIGN_KEY"
-                        and dec.get("column") == fk_column
-                        for dec in ds_decisions
-                    )
-                    if already_repaired:
+                    if fk_column in fk_action_columns:
                         continue
 
                     ref_dataset = "restaurants" if fk_column == "restaurant_id" else "riders"

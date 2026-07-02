@@ -53,6 +53,8 @@ class ModelInfoResponse(BaseModel):
     version: int = Field(description="Version of the currently active model")
     created_at: str = Field(description="Timestamp of the active model artifact")
     available_models: list[str] = Field(description="List of available model artifacts")
+    models: list[dict[str, Any]] = Field(default_factory=list, description="Registry entries for available models")
+    count: int = Field(default=0, description="Number of registered model entries")
 
 
 class HealthResponse(BaseModel):
