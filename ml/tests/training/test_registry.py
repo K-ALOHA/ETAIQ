@@ -20,12 +20,13 @@ def test_registry_initialization(registry: ModelRegistry) -> None:
         "LinearRegression",
         "RandomForestRegressor",
         "GradientBoostingRegressor",
+        "XGBRegressor",
     ]
 
 
 def test_registered_model_count(registry: ModelRegistry) -> None:
     """Exactly three regression models should be registered."""
-    assert len(registry.list_models()) == 3
+    assert len(registry.list_models()) == 4
 
 
 def test_model_retrieval_returns_fresh_instance(registry: ModelRegistry) -> None:

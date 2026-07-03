@@ -24,8 +24,8 @@ def test_successful_pipeline(engine: TrainingPipelineEngine) -> None:
     result = engine.run(X_train, X_test, y_train, y_test)
 
     assert isinstance(result, TrainingPipelineResult)
-    assert len(result.trained_models) == 3
-    assert len(result.evaluation_results) == 3
+    assert len(result.trained_models) == 4
+    assert len(result.evaluation_results) == 4
     assert result.comparison_result is not None
     assert result.best_model is not None
     assert result.saved_model is not None
@@ -41,7 +41,7 @@ def test_multiple_models_trained(engine: TrainingPipelineEngine) -> None:
 
     result = engine.run(X_train, X_test, y_train, y_test)
 
-    assert len(result.trained_models) == 3
+    assert len(result.trained_models) == 4
 
 
 def test_evaluation_generated(engine: TrainingPipelineEngine) -> None:
@@ -53,7 +53,7 @@ def test_evaluation_generated(engine: TrainingPipelineEngine) -> None:
 
     result = engine.run(X_train, X_test, y_train, y_test)
 
-    assert len(result.evaluation_results) == 3
+    assert len(result.evaluation_results) == 4
 
 
 def test_comparison_generated(engine: TrainingPipelineEngine) -> None:
@@ -65,7 +65,7 @@ def test_comparison_generated(engine: TrainingPipelineEngine) -> None:
 
     result = engine.run(X_train, X_test, y_train, y_test)
 
-    assert result.comparison_result.number_of_models == 3
+    assert result.comparison_result.number_of_models == 4
 
 
 def test_best_model_selected(engine: TrainingPipelineEngine) -> None:
@@ -77,7 +77,7 @@ def test_best_model_selected(engine: TrainingPipelineEngine) -> None:
 
     result = engine.run(X_train, X_test, y_train, y_test)
 
-    assert result.best_model.model_name in {"LinearRegression", "RandomForestRegressor", "GradientBoostingRegressor"}
+    assert result.best_model.model_name in {"LinearRegression", "RandomForestRegressor", "GradientBoostingRegressor", "XGBRegressor"}
 
 
 def test_model_persisted(engine: TrainingPipelineEngine) -> None:

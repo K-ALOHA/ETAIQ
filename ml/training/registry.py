@@ -6,6 +6,12 @@ from typing import Any
 
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import LinearRegression
+try:
+    from xgboost import XGBRegressor
+except Exception as exc:  # cover ImportError and runtime load errors (libomp, etc.)
+    raise ImportError(
+        "xgboost is required for XGBRegressor support. Ensure xgboost and its native dependencies (e.g. libomp) are installed."
+    ) from exc
 
 from .logging_config import TrainingLogger
 from .models import ModelDefinition
@@ -55,6 +61,21 @@ class ModelRegistry:
                     default_parameters={"random_state": 42},
                 ),
             ),
+            (
+                "XGBRegressor",
+                XGBRegressor,
+                ModelDefinition(
+                    model_name="XGBRegressor",
+                    task="regression",
+                    needs_scaling=False,
+                    supports_feature_importance=True,
+                    default_parameters={
+                        "objective": "reg:squarederror",
+                        "random_state": 42,
+                        "n_estimators": 100,
+                    },
+                ),
+            ),
         ]
 
         for name, model_cls, metadata in definitions:
@@ -79,8 +100,17 @@ class ModelRegistry:
         if not self.has_model(name):
             raise ValueError(f"Unknown model name: {name}")
 
-        model_cls, _ = self._models[name]
-        return model_cls()
+        model_cls, metadata = self._models[name]
+        # If the model class is unavailable (optional dependency missing), raise a clear error
+        if model_cls is None:
+            raise RuntimeError(f"Model class for {name} is unavailable. Is the optional dependency installed?")
+
+        # Instantiate with registered default parameters when provided
+        try:
+            return model_cls(**(metadata.default_parameters or {}))
+        except TypeError:
+            # Fallback to no-arg construction if parameters aren't accepted
+            return model_cls()
 
     def get_metadata(self, name: str) -> dict[str, Any]:
         """Return a serializable metadata dictionary for the requested model."""
