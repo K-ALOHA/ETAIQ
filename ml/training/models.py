@@ -15,3 +15,4 @@ class ModelDefinition:
     needs_scaling: bool = False
     supports_feature_importance: bool = False
     default_parameters: dict[str, Any] = field(default_factory=dict)
+    hyperparameter_search_grid: dict[str, list[Any]] = field(default_factory=dict)

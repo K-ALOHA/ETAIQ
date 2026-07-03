@@ -58,6 +58,26 @@ def test_metadata_validation(registry: ModelRegistry) -> None:
     assert metadata["needs_scaling"] is False
     assert metadata["supports_feature_importance"] is True
     assert isinstance(metadata["default_parameters"], dict)
+    assert isinstance(metadata["hyperparameter_search_grid"], dict)
 
     assert registry.has_model("GradientBoostingRegressor") is True
     assert registry.has_model("NotARealModel") is False
+
+
+def test_hyperparameter_grid_retrieval(registry: ModelRegistry) -> None:
+    """Registry should provide hyperparameter grids for each model."""
+    linear_grid = registry.get_hyperparameter_grid("LinearRegression")
+    assert "fit_intercept" in linear_grid
+
+    rf_grid = registry.get_hyperparameter_grid("RandomForestRegressor")
+    assert "n_estimators" in rf_grid
+
+    xgb_grid = registry.get_hyperparameter_grid("XGBRegressor")
+    assert "n_estimators" in xgb_grid
+    assert "max_depth" in xgb_grid
+
+
+def test_invalid_hyperparameter_grid_lookup(registry: ModelRegistry) -> None:
+    """Unknown model names should raise a clear error when querying grids."""
+    with pytest.raises(ValueError, match="Unknown model name"):
+        registry.get_hyperparameter_grid("NotARealModel")

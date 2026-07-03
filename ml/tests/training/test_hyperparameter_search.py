@@ -127,3 +127,15 @@ def test_best_parameter_detection(engine: HyperparameterSearchEngine) -> None:
     result = engine.search("LinearRegression", X, y, param_grid=param_grid, cv=2)
 
     assert result.best_parameters in [{"fit_intercept": True}, {"fit_intercept": False}]
+
+
+def test_xgbregressor_search(engine: HyperparameterSearchEngine) -> None:
+    """XGBRegressor should support hyperparameter search."""
+    X = np.arange(30).reshape(-1, 1)
+    y = np.arange(30, dtype=float)
+    param_grid = {"n_estimators": [10, 20], "max_depth": [3, 5]}
+
+    result = engine.search("XGBRegressor", X, y, param_grid=param_grid, cv=2)
+
+    assert result.model_name == "XGBRegressor"
+    assert result.number_of_configurations == 4  # 2 n_estimators * 2 max_depth

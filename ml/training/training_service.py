@@ -90,7 +90,7 @@ class TrainingService:
                 model_name,
                 X_train,
                 y_train,
-                param_grid=self._default_param_grid(model_name),
+                param_grid=self._registry.get_hyperparameter_grid(model_name),
                 cv=min(3, len(np.asarray(X_train))),
             )
             hyperparameter_results.append(hyperparameter_result)
@@ -159,13 +159,3 @@ class TrainingService:
             if training_result.model_name == model_name:
                 return training_result
         raise ValueError(f"No trained model found for {model_name}")
-
-    def _default_param_grid(self, model_name: str) -> dict[str, list[Any]]:
-        """Return a minimal parameter grid for a registered model."""
-        if model_name == "LinearRegression":
-            return {"fit_intercept": [True, False]}
-        if model_name == "RandomForestRegressor":
-            return {"n_estimators": [10, 20], "random_state": [42]}
-        if model_name == "GradientBoostingRegressor":
-            return {"n_estimators": [10, 20], "random_state": [42]}
-        return {"random_state": [42]}

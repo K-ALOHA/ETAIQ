@@ -37,6 +37,7 @@ class ModelRegistry:
                     needs_scaling=False,
                     supports_feature_importance=False,
                     default_parameters={},
+                    hyperparameter_search_grid={"fit_intercept": [True, False]},
                 ),
             ),
             (
@@ -48,6 +49,7 @@ class ModelRegistry:
                     needs_scaling=False,
                     supports_feature_importance=True,
                     default_parameters={"n_estimators": 100, "random_state": 42},
+                    hyperparameter_search_grid={"n_estimators": [10, 20], "random_state": [42]},
                 ),
             ),
             (
@@ -59,6 +61,7 @@ class ModelRegistry:
                     needs_scaling=False,
                     supports_feature_importance=True,
                     default_parameters={"random_state": 42},
+                    hyperparameter_search_grid={"n_estimators": [10, 20], "random_state": [42]},
                 ),
             ),
             (
@@ -73,6 +76,12 @@ class ModelRegistry:
                         "objective": "reg:squarederror",
                         "random_state": 42,
                         "n_estimators": 100,
+                    },
+                    hyperparameter_search_grid={
+                        "n_estimators": [50, 100],
+                        "max_depth": [3, 5],
+                        "learning_rate": [0.01, 0.1],
+                        "subsample": [0.8, 1.0],
                     },
                 ),
             ),
@@ -124,4 +133,13 @@ class ModelRegistry:
             "needs_scaling": metadata.needs_scaling,
             "supports_feature_importance": metadata.supports_feature_importance,
             "default_parameters": metadata.default_parameters,
+            "hyperparameter_search_grid": metadata.hyperparameter_search_grid,
         }
+
+    def get_hyperparameter_grid(self, name: str) -> dict[str, list[Any]]:
+        """Return the hyperparameter search grid for the requested model."""
+        if not self.has_model(name):
+            raise ValueError(f"Unknown model name: {name}")
+
+        _, metadata = self._models[name]
+        return metadata.hyperparameter_search_grid
