@@ -84,7 +84,8 @@ class ScalingEngine:
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Transform encoded training and testing dataframes using the fitted scaler."""
         if self.scaler is None:
-            raise ValueError("Scaler has not been fitted.")
+            self.logger.info("Scaler not fitted; skipping scaling")
+            return encoded_X_train.copy(), encoded_X_test.copy()
 
         train_before = encoded_X_train.shape
         test_before = encoded_X_test.shape
@@ -104,6 +105,14 @@ class ScalingEngine:
         )
 
         return scaled_X_train, scaled_X_test
+
+    def transform_single(self, encoded_X: pd.DataFrame) -> pd.DataFrame:
+        """Transform a single encoded dataframe using the fitted scaler."""
+        if self.scaler is None:
+            self.logger.info("Scaler not fitted; skipping scaling")
+            return encoded_X.copy()
+
+        return self._scale_dataframe(encoded_X)
 
     def export_scaler(self) -> str:
         """Persist the fitted scaler to disk."""
@@ -128,13 +137,19 @@ class ScalingEngine:
     def _scale_dataframe(self, X: pd.DataFrame) -> pd.DataFrame:
         result = X.copy()
         if self.continuous_columns:
-            scaled_values = self.scaler.transform(result[self.continuous_columns])
+            present_continuous = [c for c in self.continuous_columns if c in result.columns]
+            missing = [c for c in self.continuous_columns if c not in result.columns]
+            if missing:
+                self.logger.info("Continuous features missing in input; skipping missing columns", missing_features=missing)
+            if not present_continuous:
+                return result
+            scaled_values = self.scaler.transform(result[present_continuous])
             scaled_df = pd.DataFrame(
                 scaled_values,
-                columns=self.continuous_columns,
+                columns=present_continuous,
                 index=result.index,
             )
-            for column in self.continuous_columns:
+            for column in present_continuous:
                 result[column] = scaled_df[column].values
         return result
 

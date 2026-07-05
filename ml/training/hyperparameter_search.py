@@ -10,6 +10,8 @@ from typing import Any
 
 import numpy as np
 from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+from ml.features.sklearn_preprocessor import SklearnPreprocessor
 
 from .config import DEFAULT_TRAINING_CONFIG
 from .logging_config import TrainingLogger
@@ -60,8 +62,16 @@ class HyperparameterSearchEngine:
         )
 
         start_time = time.perf_counter()
+        # Wrap estimator in a pipeline with the project preprocessor so GridSearchCV
+        # receives raw features and fits preprocessing per fold consistently.
+        preprocessor = SklearnPreprocessor()
         estimator = self._registry.get_model(model_name)
-        search = GridSearchCV(estimator=estimator, param_grid=param_grid, scoring=scoring, cv=cv)
+        pipeline = Pipeline([("preprocessor", preprocessor), ("estimator", estimator)])
+
+        # Adjust param_grid to prefix estimator parameters (pipeline step name 'estimator')
+        adjusted_grid = {f"estimator__{k}": v for k, v in param_grid.items()} if param_grid else {}
+
+        search = GridSearchCV(estimator=pipeline, param_grid=adjusted_grid, scoring=scoring, cv=cv)
         search.fit(X_array, y_array)
         elapsed = time.perf_counter() - start_time
 

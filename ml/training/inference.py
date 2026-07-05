@@ -32,12 +32,13 @@ class InferenceEngine:
         self._logger = logger or TrainingLogger(name="training.inference")
         self._persistence = ModelPersistenceEngine(logger=logger)
 
-    def predict(self, model_path: str | Path, X: Any) -> InferenceResult:
+    def predict(self, model_path: str | Path, X: Any, model: Any | None = None) -> InferenceResult:
         """Load a saved model and return a single prediction result."""
-        model = self._load_model(model_path)
+        model = self._load_model(model_path) if model is None else model
         features = self._prepare_features(X)
 
         self._validate_features(features)
+        features = self._align_features_to_model(features, model)
         self._logger.info("Prediction started", model_path=str(model_path), rows=len(features))
 
         start_time = time.perf_counter()
@@ -59,12 +60,13 @@ class InferenceEngine:
             model_version=self._extract_model_version(model_path),
         )
 
-    def batch_predict(self, model_path: str | Path, X: Any) -> np.ndarray:
+    def batch_predict(self, model_path: str | Path, X: Any, model: Any | None = None) -> np.ndarray:
         """Load a saved model and return batched predictions."""
-        model = self._load_model(model_path)
+        model = self._load_model(model_path) if model is None else model
         features = self._prepare_features(X)
 
         self._validate_features(features)
+        features = self._align_features_to_model(features, model)
         self._logger.info("Prediction started", model_path=str(model_path), rows=len(features))
 
         start_time = time.perf_counter()
@@ -120,6 +122,36 @@ class InferenceEngine:
 
         if features.ndim == 1:
             features = features.reshape(1, -1)
+
+    def _align_features_to_model(self, features: np.ndarray, model: Any) -> np.ndarray:
+        """Pad or truncate feature matrices so they match the model's expected input width."""
+        expected_count = self._extract_expected_feature_count(model)
+        if expected_count is None:
+            return features
+
+        if features.ndim == 1:
+            features = features.reshape(1, -1)
+
+        if features.shape[1] == expected_count:
+            return features
+
+        if features.shape[1] < expected_count:
+            pad_width = expected_count - features.shape[1]
+            return np.pad(features, ((0, 0), (0, pad_width)), mode="constant", constant_values=0.0)
+
+        return features[:, :expected_count]
+
+    def _extract_expected_feature_count(self, model: Any) -> int | None:
+        """Inspect a fitted model for the expected number of input features."""
+        if model is None:
+            return None
+        if hasattr(model, "n_features_in_"):
+            return int(getattr(model, "n_features_in_"))
+        if hasattr(model, "named_steps"):
+            for _, step in reversed(list(model.named_steps.items())):
+                if hasattr(step, "n_features_in_"):
+                    return int(getattr(step, "n_features_in_"))
+        return None
 
     def _extract_model_name(self, model_path: str | Path) -> str:
         """Infer the model name from the persisted file path."""

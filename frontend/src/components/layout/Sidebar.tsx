@@ -1,51 +1,84 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Menu, Home, Truck, Activity, Cpu, Layers, Database, Monitor, Search, Sparkles, Settings } from "lucide-react";
+import { SidebarNavItem } from "@/components/layout/SidebarNavItem";
+import { Button } from "@/components/ui/button";
+
+interface SidebarProps {
+  mobileOpen: boolean;
+  onClose: () => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard" },
-  { name: "Prediction", href: "/prediction" },
-  { name: "Analytics", href: "/analytics" },
-  { name: "History", href: "/history" },
-  { name: "AI Assistant", href: "/ai-assistant" },
-  { name: "Settings", href: "/settings" },
+  { label: "Dashboard", href: "/dashboard", icon: Home },
+  { label: "Predict ETA", href: "/prediction", icon: Truck },
+  { label: "Model Performance", href: "/model-performance", icon: Activity },
+  { label: "Training", href: "/training", icon: Cpu },
+  { label: "Model Registry", href: "/model-registry", icon: Layers },
+  { label: "Monitoring", href: "/monitoring", icon: Monitor },
+  { label: "Explainability", href: "/explainability", icon: Search },
+  { label: "Dataset Explorer", href: "/dataset-explorer", icon: Database },
+  { label: "AI Assistant", href: "/ai-assistant", icon: Sparkles },
+  { label: "Settings", href: "/settings", icon: Settings },
 ] as const;
 
-export function Sidebar() {
-  const pathname = usePathname();
-
+export function Sidebar({ mobileOpen, onClose, collapsed, onToggleCollapse }: SidebarProps) {
   return (
-    <aside className="flex w-64 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="border-b border-zinc-200 px-6 py-5 dark:border-zinc-800">
-        <Link href="/dashboard" className="flex flex-col">
-          <span className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+    <>
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-full bg-slate-950/95 px-3 py-4 shadow-2xl shadow-black/40 backdrop-blur-xl transition-transform duration-300 md:hidden ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between px-2">
+          <Link href="/dashboard" className="text-lg font-semibold tracking-tight text-white">
             ETAIQ
-          </span>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            ETA Intelligence Platform
-          </span>
-        </Link>
+          </Link>
+          <Button type="button" className="h-11 w-11 p-0" onClick={onClose}>
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
+        <nav className="mt-6 flex flex-col gap-2 px-1">
+          {navigation.map((item) => (
+            <SidebarNavItem key={item.href} href={item.href} label={item.label} icon={item.icon} />
+          ))}
+        </nav>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 p-4">
-        {navigation.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
-              }`}
-            >
-              {item.name}
-            </Link>
-          );
-        })}
-      </nav>
-    </aside>
+      <aside className={`hidden h-full min-h-screen flex-col gap-6 border-r border-white/10 bg-slate-950/95 px-4 py-6 shadow-2xl shadow-black/20 backdrop-blur-xl md:flex ${collapsed ? "w-20" : "w-72"}`}>
+        <div className="flex items-center justify-between gap-3 px-2">
+          <Link href="/dashboard" className="flex items-center gap-2 text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-3xl bg-gradient-to-br from-sky-500 to-violet-500 text-sm font-semibold shadow-lg shadow-slate-950/30">
+              AI
+            </div>
+            {!collapsed && (
+              <div>
+                <p className="text-lg font-semibold tracking-tight">ETAIQ</p>
+                <p className="text-xs text-slate-400">Deliver smarter ETA</p>
+              </div>
+            )}
+          </Link>
+          <Button type="button" className="h-11 w-11 p-0" onClick={onToggleCollapse}>
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <nav className="flex flex-1 flex-col gap-2 px-1">
+          {navigation.map((item) => (
+            <SidebarNavItem key={item.href} href={item.href} label={item.label} icon={item.icon} collapsed={collapsed} />
+          ))}
+        </nav>
+
+        {!collapsed && (
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-xs text-slate-300">
+            <p className="font-semibold text-slate-100">Premium AI Insights</p>
+            <p className="mt-2 text-slate-500">Manage models, datasets, monitoring, and governance in one unified workspace.</p>
+          </div>
+        )}
+      </aside>
+    </>
   );
 }

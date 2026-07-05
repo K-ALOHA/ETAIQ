@@ -1,0 +1,11 @@
+{
+  "model_name": "LinearRegression",
+  "version": 1030,
+  "artifact_path": "/Users/kaloha/ETAIQ/ml/artifacts/models/LinearRegression_v1030.joblib",
+  "metrics": {
+    "mae": 0.0
+  },
+  "created_at": "2026-07-03T04:11:24.332319+00:00",
+  "status": "Archived",
+  "metadata": {}
+}

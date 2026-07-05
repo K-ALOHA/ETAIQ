@@ -181,24 +181,40 @@ class EncodingEngine:
         )
         return encoded_X_train, encoded_X_test
 
-    def _transform_dataframe(self, X: pd.DataFrame) -> pd.DataFrame:
-        X_non_encoded = X[self.non_encoded_features].copy()
-        result_frames: list[pd.DataFrame] = [X_non_encoded]
+    def transform_single(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Transform a single dataframe using the fitted encoders."""
+        if self.onehot_encoder is None and self.ordinal_encoder is None:
+            self.logger.info("Encoding skipped; no encoders were configured")
+            return X.copy()
 
+        return self._transform_dataframe(X)
+
+    def _transform_dataframe(self, X: pd.DataFrame) -> pd.DataFrame:
+        # Only keep columns that actually exist in the incoming dataframe
+        non_encoded_present = [c for c in self.non_encoded_features if c in X.columns]
+        missing = [c for c in self.non_encoded_features if c not in X.columns]
+        if missing:
+            self.logger.info("Non-encoded features missing in input; skipping missing columns", missing_features=missing)
+        X_non_encoded = X[non_encoded_present].copy()
+        result_frames: list[pd.DataFrame] = [X_non_encoded]
         if self.ordinal_features and self.ordinal_encoder is not None:
-            ordinal_values = self.ordinal_encoder.transform(X[self.ordinal_features].astype(str))
-            ordinal_df = pd.DataFrame(
-                ordinal_values,
-                columns=self.ordinal_features,
-                index=X.index,
-            )
-            result_frames.append(ordinal_df)
+            ordinal_present = [c for c in self.ordinal_features if c in X.columns]
+            if ordinal_present:
+                ordinal_values = self.ordinal_encoder.transform(X[ordinal_present].astype(str))
+                ordinal_df = pd.DataFrame(
+                    ordinal_values,
+                    columns=ordinal_present,
+                    index=X.index,
+                )
+                result_frames.append(ordinal_df)
 
         if self.onehot_features and self.onehot_encoder is not None:
-            onehot_values = self.onehot_encoder.transform(X[self.onehot_features].astype(str))
-            onehot_columns = self.onehot_encoder.get_feature_names_out(self.onehot_features)
-            onehot_df = pd.DataFrame(onehot_values, columns=onehot_columns, index=X.index)
-            result_frames.append(onehot_df)
+            onehot_present = [c for c in self.onehot_features if c in X.columns]
+            if onehot_present:
+                onehot_values = self.onehot_encoder.transform(X[onehot_present].astype(str))
+                onehot_columns = self.onehot_encoder.get_feature_names_out(onehot_present)
+                onehot_df = pd.DataFrame(onehot_values, columns=onehot_columns, index=X.index)
+                result_frames.append(onehot_df)
 
         encoded = pd.concat(result_frames, axis=1)
         return encoded

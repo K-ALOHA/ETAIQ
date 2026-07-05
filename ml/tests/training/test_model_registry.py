@@ -74,3 +74,24 @@ def test_archive_model_updates_status(tmp_path: Path) -> None:
 
     assert engine.get_model("LinearRegression", 1).status == "Archived"
     assert registered.status == "Staging"
+
+
+def test_update_explainability_artifacts_metadata(tmp_path: Path) -> None:
+    """Registry metadata should accept explainability artifact locations for production models."""
+    engine = ModelRegistryEngine(storage_dir=tmp_path)
+    artifact_path = tmp_path / "model.joblib"
+    artifact_path.write_bytes(b"model")
+
+    registered = engine.register_model("LinearRegression", 1, artifact_path, metrics={}, status="Production")
+    updated = engine.update_explainability_metadata(
+        model_name="LinearRegression",
+        version=1,
+        explainability_dir=tmp_path / "explainability",
+        feature_importance_path=tmp_path / "explainability" / "feature_importance.json",
+        local_explanation_path=tmp_path / "explainability" / "local_explanation.json",
+        metadata_path=tmp_path / "explainability" / "metadata.json",
+    )
+
+    assert updated.metadata["explainability_available"] is True
+    assert updated.metadata["explainability_dir"] == str(tmp_path / "explainability")
+    assert updated.metadata["feature_importance_path"] == str(tmp_path / "explainability" / "feature_importance.json")

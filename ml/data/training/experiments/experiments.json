@@ -1,0 +1,14 @@
+[
+  {
+    "experiment_id": "exp-45b9662a",
+    "timestamp": "2026-07-05T07:50:45.418233+00:00",
+    "model_name": "XGBRegressor",
+    "dataset_version": "default",
+    "hyperparameters": {},
+    "metrics": {
+      "mae": 0.0
+    },
+    "training_time_seconds": 0.01,
+    "model_version": 2
+  }
+]

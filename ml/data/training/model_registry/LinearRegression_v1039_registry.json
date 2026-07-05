@@ -1,0 +1,14 @@
+{
+  "model_name": "LinearRegression",
+  "version": 1039,
+  "artifact_path": "data/training/model_registry/artifacts/models/LinearRegression_v1039.joblib",
+  "metrics": {
+    "mae": 8.881784197001252e-16,
+    "rmse": 8.881784197001252e-16,
+    "r2": NaN,
+    "mape": 2.220446049250313e-14
+  },
+  "created_at": "2026-07-04T15:14:53.295679+00:00",
+  "status": "Archived",
+  "metadata": {}
+}

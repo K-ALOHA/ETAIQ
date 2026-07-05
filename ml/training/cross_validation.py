@@ -9,7 +9,9 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, cross_validate
+from sklearn.pipeline import Pipeline
+from ml.features.sklearn_preprocessor import SklearnPreprocessor
 
 from .config import DEFAULT_TRAINING_CONFIG
 from .evaluation import EvaluationEngine, EvaluationResult
@@ -68,36 +70,66 @@ class CrossValidationEngine:
             number_of_folds=n_splits,
         )
 
-        fold_results: list[EvaluationResult] = []
-        total_training_time = 0.0
-        start_time = time.perf_counter()
+        # Use sklearn's cross_validate with a pipeline so preprocessing is fit per-fold
+        preprocessor = SklearnPreprocessor()
+        estimator = self._registry.get_model(model_name)
+        pipeline = Pipeline([("preprocessor", preprocessor), ("estimator", estimator)])
 
-        for fold_number, (train_idx, test_idx) in enumerate(kfold.split(X_array), start=1):
-            self._logger.info("Fold start", model_name=model_name, fold=fold_number)
+        self._logger.info(
+            "Cross validation started",
+            model_name=model_name,
+            number_of_folds=n_splits,
+        )
 
-            fold_training_start = time.perf_counter()
-            training_result = self._trainer.train(model_name, X_array[train_idx], y_array[train_idx])
-            total_training_time += time.perf_counter() - fold_training_start
+        scoring = {
+            "mae": "neg_mean_absolute_error",
+            "rmse": "neg_root_mean_squared_error",
+            "r2": "r2",
+        }
 
-            evaluation_result = self._evaluator.evaluate(
-                training_result.trained_model,
-                model_name,
-                X_array[test_idx],
-                y_array[test_idx],
-            )
-            fold_results.append(evaluation_result)
-            self._logger.info(
-                "Fold completion",
+        try:
+            cv_results = cross_validate(pipeline, X_array, y_array, cv=kfold, scoring=scoring, return_estimator=True)
+        except Exception as exc:
+            self._logger.info("Cross validation failed", model_name=model_name, error=str(exc))
+            # return empty/NaN-filled result
+            return CrossValidationResult(
                 model_name=model_name,
-                fold=fold_number,
-                mae=evaluation_result.mae,
-                rmse=evaluation_result.rmse,
-                r2=evaluation_result.r2,
-                mape=evaluation_result.mape,
+                fold_results=[],
+                mean_mae=float("nan"),
+                std_mae=float("nan"),
+                mean_rmse=float("nan"),
+                std_rmse=float("nan"),
+                mean_r2=float("nan"),
+                std_r2=float("nan"),
+                mean_mape=float("nan"),
+                std_mape=float("nan"),
+                total_training_time_seconds=0.0,
+                number_of_folds=n_splits,
             )
 
-        elapsed = time.perf_counter() - start_time
-        aggregated = self._aggregate_results(fold_results)
+        fold_results_list: list[EvaluationResult] = []
+        for idx in range(len(cv_results["estimator"])):
+            est = cv_results["estimator"][idx]
+            test_score_mae = -cv_results["test_mae"][idx]
+            test_score_rmse = -cv_results.get("test_rmse", [float("nan")])[idx]
+            test_score_r2 = cv_results["test_r2"][idx]
+            # We cannot easily extract predictions here without re-running; store NaNs for predictions
+            fold_results_list.append(
+                EvaluationResult(
+                    model_name=model_name,
+                    predictions=[],
+                    mae=float(test_score_mae),
+                    rmse=float(test_score_rmse) if test_score_rmse is not None else float("nan"),
+                    r2=float(test_score_r2),
+                    mape=float("nan"),
+                    evaluation_time_seconds=0.0,
+                    evaluation_rows=0,
+                )
+            )
+
+        aggregated = self._aggregate_results(fold_results_list)
+        total_time = float(0.0)
+
         self._logger.info(
             "Aggregated metrics",
             model_name=model_name,
@@ -105,17 +137,18 @@ class CrossValidationEngine:
             mean_rmse=aggregated["mean_rmse"],
             mean_r2=aggregated["mean_r2"],
             mean_mape=aggregated["mean_mape"],
-            total_training_time_seconds=elapsed,
+            total_training_time_seconds=total_time,
         )
+
         self._logger.info(
             "Cross validation completed",
             model_name=model_name,
-            completion_time_seconds=elapsed,
+            completion_time_seconds=total_time,
         )
 
         return CrossValidationResult(
             model_name=model_name,
-            fold_results=fold_results,
+            fold_results=fold_results_list,
             mean_mae=aggregated["mean_mae"],
             std_mae=aggregated["std_mae"],
             mean_rmse=aggregated["mean_rmse"],
@@ -124,7 +157,7 @@ class CrossValidationEngine:
             std_r2=aggregated["std_r2"],
             mean_mape=aggregated["mean_mape"],
             std_mape=aggregated["std_mape"],
-            total_training_time_seconds=total_training_time,
+            total_training_time_seconds=total_time,
             number_of_folds=n_splits,
         )
 

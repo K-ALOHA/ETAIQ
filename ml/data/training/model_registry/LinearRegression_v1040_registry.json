@@ -1,0 +1,28 @@
+{
+  "model_name": "LinearRegression",
+  "version": 1040,
+  "artifact_path": "data/training/model_registry/artifacts/models/LinearRegression_v1040.joblib",
+  "metrics": {
+    "mae": 8.881784197001252e-16,
+    "rmse": 8.881784197001252e-16,
+    "r2": NaN,
+    "mape": 2.220446049250313e-14
+  },
+  "created_at": "2026-07-04T15:18:56.930234+00:00",
+  "status": "Archived",
+  "metadata": {
+    "ranking_metric": "mae",
+    "metric_value": 8.881784197001252e-16,
+    "explainability_available": true,
+    "feature_importance_path": "/Users/kaloha/ETAIQ/ml/artifacts/ml/artifacts/explainability/LinearRegression/1040/feature_importance.json",
+    "feature_importance_csv_path": "/Users/kaloha/ETAIQ/ml/artifacts/ml/artifacts/explainability/LinearRegression/1040/feature_importance.csv",
+    "shap_path": "/Users/kaloha/ETAIQ/ml/artifacts/ml/artifacts/explainability/LinearRegression/1040/shap_summary.json",
+    "metadata_path": "/Users/kaloha/ETAIQ/ml/artifacts/ml/artifacts/explainability/LinearRegression/1040/metadata.json",
+    "feature_names": [
+      "0"
+    ],
+    "generated_at": "2026-07-04T15:18:56.914089+00:00",
+    "artifact_path": "/Users/kaloha/ETAIQ/ml/artifacts/models/LinearRegression_v1040.joblib",
+    "saved_timestamp": "2026-07-04T15:18:56.919165+00:00"
+  }
+}

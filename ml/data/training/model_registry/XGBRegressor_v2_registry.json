@@ -1,0 +1,43 @@
+{
+  "model_name": "XGBRegressor",
+  "version": 2,
+  "artifact_path": "/Users/kaloha/ETAIQ/ml/artifacts/models/XGBRegressor_v2.joblib",
+  "metrics": {
+    "mae": 4.437311712612657,
+    "rmse": 7.51258761808612,
+    "r2": 0.37543886965059114,
+    "mape": 18.15588705116816
+  },
+  "created_at": "2026-07-03T03:55:46.074104+00:00",
+  "status": "Production",
+  "metadata": {
+    "dataset_size": 264777,
+    "training_samples": 211821,
+    "testing_samples": 52956,
+    "feature_count": 14,
+    "target_column": "actual_delivery_time_min",
+    "feature_names": [
+      "drop_lat",
+      "drop_lon",
+      "order_size",
+      "order_value",
+      "lat",
+      "lon",
+      "avg_rating",
+      "prep_capacity",
+      "id_rider",
+      "lat_rider",
+      "lon_rider",
+      "completed_orders",
+      "shift_hours",
+      "current_load"
+    ],
+    "hyperparameters": {
+      "objective": "reg:squarederror",
+      "random_state": 42,
+      "n_estimators": 100
+    },
+    "training_timestamp": "2026-07-03T03:55:46Z",
+    "production_status": "Pending"
+  }
+}

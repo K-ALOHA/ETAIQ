@@ -39,6 +39,14 @@ class FeatureSelectionEngine:
         y_train: pd.Series,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Perform feature selection and export selection artifacts."""
+        # Backwards compatible wrapper: fit then transform
+        self.fit(scaled_X_train, y_train)
+        selected_X_train = self.transform(scaled_X_train)
+        selected_X_test = self.transform(scaled_X_test)
+        return selected_X_train, selected_X_test
+
+    def fit(self, scaled_X_train: pd.DataFrame, y_train: pd.Series) -> None:
+        """Fit the feature selection model and persist artifacts."""
         self.logger.info("Feature selection started")
 
         original_features = list(scaled_X_train.columns)
@@ -53,15 +61,9 @@ class FeatureSelectionEngine:
 
         if current_train.empty:
             self.logger.info("No feature columns remain after preprocessing; skipping feature selection")
-            selected_feature_names = list(scaled_X_train.columns)
-            selected_X_train = scaled_X_train[selected_feature_names].copy()
-            selected_X_test = scaled_X_test[selected_feature_names].copy()
-            importance_df = pd.DataFrame(
-                {
-                    "feature_name": selected_feature_names,
-                    "importance": 0.0,
-                }
-            )
+            # Keep original columns as selected if nothing numeric remains
+            self.selected_feature_names = list(scaled_X_train.columns)
+            importance_df = pd.DataFrame({"feature_name": self.selected_feature_names, "importance": 0.0})
             importance_df["rank"] = range(1, len(importance_df) + 1)
             self._export_feature_importance(importance_df)
             self._export_selected_features(importance_df)
@@ -70,27 +72,20 @@ class FeatureSelectionEngine:
                 original_features=len(original_features),
                 constant_removed=constant_removed,
                 correlated_removed=correlated_removed,
-                selected_features=len(selected_feature_names),
+                selected_features=len(self.selected_feature_names),
                 top_features=importance_df["feature_name"].head(20).tolist(),
             )
-            return selected_X_train, selected_X_test
+            return
 
         self.model = RandomForestRegressor(random_state=42, n_estimators=100)
         self.model.fit(current_train, y_train)
         self.logger.info("Feature importance calculated", features=current_train.shape[1])
 
-        importance_df = pd.DataFrame(
-            {
-                "feature_name": current_train.columns,
-                "importance": self.model.feature_importances_,
-            }
-        )
+        importance_df = pd.DataFrame({"feature_name": current_train.columns, "importance": self.model.feature_importances_})
         importance_df.sort_values("importance", ascending=False, inplace=True)
         importance_df["rank"] = range(1, len(importance_df) + 1)
 
-        selected_feature_names = importance_df["feature_name"].tolist()
-        selected_X_train = scaled_X_train[selected_feature_names].copy()
-        selected_X_test = scaled_X_test[selected_feature_names].copy()
+        self.selected_feature_names = importance_df["feature_name"].tolist()
 
         self._export_feature_importance(importance_df)
         self._export_selected_features(importance_df)
@@ -100,11 +95,23 @@ class FeatureSelectionEngine:
             original_features=len(original_features),
             constant_removed=constant_removed,
             correlated_removed=correlated_removed,
-            selected_features=len(selected_feature_names),
+            selected_features=len(self.selected_feature_names),
             top_features=importance_df["feature_name"].head(20).tolist(),
         )
 
-        return selected_X_train, selected_X_test
+    def transform(self, scaled_X: pd.DataFrame) -> pd.DataFrame:
+        """Apply selection using the fitted feature selector."""
+        if not hasattr(self, "selected_feature_names") or not self.selected_feature_names:
+            # If not fitted or empty, return the input unchanged
+            return scaled_X.copy()
+        # Ensure all selected columns exist; if missing, add zero-filled columns to preserve schema
+        cols = list(self.selected_feature_names)
+        missing = [c for c in cols if c not in scaled_X.columns]
+        if missing:
+            self.logger.info("Selected features missing in input; adding zero-filled placeholders", missing_features=missing)
+            for c in missing:
+                scaled_X[c] = 0.0
+        return scaled_X[cols].copy()
 
     def _remove_constant_features(self, X: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
         constant_features = [column for column in X.columns if X[column].nunique(dropna=False) <= 1]

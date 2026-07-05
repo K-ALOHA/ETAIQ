@@ -16,6 +16,8 @@ from ml.features.encoding_registry import EncodingPlan, EncodingPlanEntry
 from ml.features.scaling import ScalingEngine
 from ml.features.selection import FeatureSelectionEngine
 
+from sklearn.pipeline import Pipeline
+
 from .inference import InferenceEngine
 from .logging_config import TrainingLogger
 from .persistence import ModelPersistenceEngine
@@ -43,7 +45,7 @@ class PredictionPipelineEngine:
         self._inference_engine = InferenceEngine(logger=logger)
         self._persistence_engine = ModelPersistenceEngine(logger=logger)
 
-    def predict(self, model_path: str | Path, X: Any) -> PredictionPipelineResult:
+    def predict(self, model_path: str | Path, X: Any, model: Any | None = None) -> PredictionPipelineResult:
         """Prepare raw features, load a persisted model, and return predictions."""
         self._validate_inputs(model_path, X)
 
@@ -51,15 +53,23 @@ class PredictionPipelineEngine:
         start_time = time.perf_counter()
 
         features_frame = self._prepare_dataframe(X)
-        self._logger.info("Encoding completed")
-        encoded_frame = self._encode_features(features_frame)
-        self._logger.info("Scaling completed")
-        scaled_frame = self._scale_features(encoded_frame)
-        self._logger.info("Feature selection completed")
-        selected_frame = self._select_features(scaled_frame)
-
+        # Load persisted model (should be a pipeline containing preprocessing)
         self._logger.info("Model loaded", model_path=str(model_path))
-        predictions = self._inference_engine.batch_predict(model_path, selected_frame)
+        trained = self._persistence_engine.load_model(model_path)
+        # If loaded object is an sklearn pipeline, pass raw features through it and preserve schema validation.
+        selected_frame = features_frame
+        if isinstance(trained, Pipeline):
+            predictions = trained.predict(features_frame)
+        else:
+            try:
+                predictions = trained.predict(features_frame)
+            except Exception:
+                # fallback to legacy behavior for non-pipeline persisted models
+                self._logger.info("Fallback: legacy preprocessing for prediction")
+                encoded_frame = self._encode_features(features_frame)
+                scaled_frame = self._scale_features(encoded_frame)
+                selected_frame = self._select_features(scaled_frame)
+                predictions = self._inference_engine.batch_predict(model_path, selected_frame, model=model)
         if predictions.ndim != 1:
             predictions = np.asarray(predictions).reshape(-1)
 

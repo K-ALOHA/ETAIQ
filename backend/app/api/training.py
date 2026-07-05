@@ -29,22 +29,49 @@ async def train(request: TrainingRequest) -> TrainingResponse:
         result = service.train(request.X_train, request.X_test, request.y_train, request.y_test)
 
         try:
+            # Extract all metrics from the comparison result for the best model
+            best_metrics_entry = next(
+                entry for entry in result.comparison_result.leaderboard
+                if entry["model_name"] == result.best_model.model_name
+            )
+            all_metrics = {
+                "mae": float(best_metrics_entry["mae"]),
+                "rmse": float(best_metrics_entry["rmse"]),
+                "r2": float(best_metrics_entry["r2"]),
+                "mape": float(best_metrics_entry["mape"]),
+            }
+            
             registry_engine.register_model(
                 model_name=result.best_model.model_name,
                 version=result.saved_model.version,
                 artifact_path=result.saved_model.model_path,
-                metrics={"mae": float(result.best_model.metric_value)},
+                metrics=all_metrics,
                 status="Production",
             )
             registry_engine.set_production(result.best_model.model_name, result.saved_model.version)
         except ValueError:
             pass
 
+        try:
+            # Extract all metrics for experiment logging
+            best_metrics_entry = next(
+                entry for entry in result.comparison_result.leaderboard
+                if entry["model_name"] == result.best_model.model_name
+            )
+            all_metrics = {
+                "mae": float(best_metrics_entry["mae"]),
+                "rmse": float(best_metrics_entry["rmse"]),
+                "r2": float(best_metrics_entry["r2"]),
+                "mape": float(best_metrics_entry["mape"]),
+            }
+        except (StopIteration, KeyError):
+            all_metrics = {"mae": float(result.best_model.metric_value)}
+        
         experiment_engine.log_experiment(
             model_name=result.best_model.model_name,
             dataset_version="default",
             hyperparameters={"selected_model": result.best_model.model_name},
-            metrics={"mae": float(result.best_model.metric_value)},
+            metrics=all_metrics,
             training_time_seconds=result.training_time,
             model_version=result.saved_model.version,
         )

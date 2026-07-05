@@ -127,3 +127,41 @@ class ExplainabilityResponse(BaseModel):
     explanation_time_seconds: float
     explanation_method: str
     sample_count: int
+
+
+class ExplainabilityLatestResponse(BaseModel):
+    """Response schema for the latest explainability workspace payload."""
+
+    model_name: str
+    version: str | None = None
+    latest_prediction_value: float = 0.0
+    prediction_time: str = ""
+    confidence_score: float = 0.0
+    explainability_status: str = "unavailable"
+    feature_importance: dict[str, float] = Field(default_factory=dict)
+    ranked_features: list[dict[str, Any]] = Field(default_factory=list)
+    local_explanation: list[dict[str, Any]] = Field(default_factory=list)
+    natural_language_explanation: str = ""
+    summary_plot: str | None = None
+    waterfall_plot: str | None = None
+    plots: dict[str, str | None] = Field(default_factory=dict)
+    metadata_json: str = "{}"
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class DatasetResponse(BaseModel):
+    """Response schema for dataset summary."""
+    record_count: int
+    feature_count: int
+    target_column: str | None
+    missing_values: dict[str, int]
+    feature_names: list[str]
+
+
+class PerformanceResponse(BaseModel):
+    """Response schema for performance metrics."""
+    mae: float | None = None
+    rmse: float | None = None
+    mape: float | None = None
+    r2: float | None = None
+    inference_latency_ms: float | None = None

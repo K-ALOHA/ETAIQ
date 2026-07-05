@@ -32,9 +32,14 @@ class MonitoringRecord:
 class MonitoringEngine:
     """Collect prediction summaries and export them for monitoring workflows."""
 
-    def __init__(self, logger: TrainingLogger | None = None) -> None:
+    def __init__(self, logger: TrainingLogger | None = None, *, load_existing_records: bool = False) -> None:
         self._logger = logger or TrainingLogger(name="training.monitoring")
+        self._storage_dir = Path("ml") / "data" / "training" / "monitoring"
+        self._storage_dir.mkdir(parents=True, exist_ok=True)
+        self._storage_file = self._storage_dir / "monitoring_records.json"
         self._records: list[MonitoringRecord] = []
+        if load_existing_records:
+            self._load_existing_records()
 
     def record_predictions(
         self,
@@ -63,8 +68,23 @@ class MonitoringEngine:
             out_of_range_inputs=int(out_of_range_inputs),
         )
         self._records.append(record)
+        self._persist_records()
         self._logger.info("Monitoring record created", model_name=model_name, prediction_count=record.prediction_count)
         return record
+
+    def _persist_records(self) -> None:
+        payload = [asdict(record) for record in self._records]
+        self._storage_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        self._logger.info("Monitoring records persisted", path=str(self._storage_file))
+
+    def _load_existing_records(self) -> None:
+        if not self._storage_file.exists():
+            return
+        try:
+            payload = json.loads(self._storage_file.read_text(encoding="utf-8"))
+            self._records = [MonitoringRecord(**record) for record in payload if isinstance(record, dict)]
+        except Exception:
+            self._logger.warning("Failed to load existing monitoring records", path=str(self._storage_file))
 
     def get_latest(self) -> MonitoringRecord | None:
         """Return the latest monitoring record, if one exists."""

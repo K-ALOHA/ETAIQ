@@ -1,0 +1,20 @@
+{
+  "model_name": "LinearRegression",
+  "version": 1047,
+  "artifact_path": "artifacts/models/LinearRegression_v1047.joblib",
+  "metrics": {
+    "mae": 8.881784197001252e-16,
+    "rmse": 8.881784197001252e-16,
+    "r2": NaN,
+    "mape": 2.220446049250313e-14
+  },
+  "created_at": "2026-07-05T07:50:45.338265+00:00",
+  "status": "Archived",
+  "metadata": {
+    "ranking_metric": "mae",
+    "metric_value": 8.881784197001252e-16,
+    "explainability_available": false,
+    "artifact_path": "/Users/kaloha/ETAIQ/ml/artifacts/models/LinearRegression_v1047.joblib",
+    "saved_timestamp": "2026-07-05T07:50:45.320383+00:00"
+  }
+}

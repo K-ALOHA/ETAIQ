@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +14,8 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        # Disable complex env parsing for specific fields (prevents cors_origins from being JSON-parsed)
+        env_file_case_insensitive=True,
     )
 
     app_name: str = Field(default="ETAIQ API", description="Application display name")
@@ -23,19 +25,46 @@ class Settings(BaseSettings):
     api_prefix: str = Field(default="/api/v1", description="Base API route prefix")
 
     database_url: str = Field(
-        default="postgresql://etaiq:etaiq@localhost:5432/etaiq",
+        default="",
         description="PostgreSQL connection string",
     )
-    jwt_secret: str = Field(default="change-me-in-production", description="JWT signing secret")
-    openai_api_key: str = Field(default="", description="OpenAI API key for AI assistant")
-    gemini_api_key: str = Field(default="", description="Google Gemini API key")
+    jwt_secret: str = Field(
+        default="",
+        description="JWT signing secret (REQUIRED - must be set in environment)",
+    )
+    openrouter_api_key: str = Field(default="", description="OpenRouter API key for AI assistant")
+    openrouter_model: str = Field(default="deepseek/deepseek-chat-v3", description="OpenRouter model name")
+    openrouter_base_url: str = Field(default="https://openrouter.ai/api/v1", description="OpenRouter API base URL")
     model_path: str = Field(default="./ml/artifacts", description="Path to ML model artifacts")
     log_level: str = Field(default="INFO", description="Logging verbosity level")
 
     cors_origins: list[str] = Field(
-        default=["http://localhost:3000"],
-        description="Allowed CORS origins for the frontend",
+        default_factory=lambda: ["http://localhost:3000", "http://localhost:3001"],
+        description="Allowed CORS origins for the frontend (use comma-separated list in CORS_ORIGINS env var)",
+        json_schema_extra={"env_parse": False}
     )
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Parse CORS origins: if it's a string, split by commas; if it's already a list, return as-is."""
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            # Split by commas and strip
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def validate_jwt_secret(cls, v: str) -> str:
+        """Ensure JWT_SECRET is set in production-like environments."""
+        if not v or v.isspace():
+            raise ValueError(
+                "JWT_SECRET environment variable must be set. "
+                "This is a security-critical value that must be configured per environment."
+            )
+        return v
 
 
 @lru_cache

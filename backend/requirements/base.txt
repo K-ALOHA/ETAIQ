@@ -22,6 +22,7 @@ python-dotenv==1.0.1
 joblib==1.4.2
 orjson==3.10.12
 rich==13.9.4
+openai>=1.0.0
 
 # --- Security ---
 passlib[bcrypt]==1.7.4

@@ -50,10 +50,18 @@ class EvaluationEngine:
         )
 
         start_time = time.perf_counter()
+        # Prefer passing the original X_test (DataFrame or array) to preserve column names
         if hasattr(model, "predict"):
-            predictions = model.predict(X_array)
+            try:
+                predictions = model.predict(X_test)
+            except Exception:
+                # fallback to numpy array if the model requires raw arrays
+                predictions = model.predict(X_array)
         elif callable(model):
-            predictions = np.asarray(model(X_array))
+            try:
+                predictions = np.asarray(model(X_test))
+            except Exception:
+                predictions = np.asarray(model(X_array))
         else:
             raise ValueError("Model must be callable or expose a predict method")
         elapsed = time.perf_counter() - start_time
