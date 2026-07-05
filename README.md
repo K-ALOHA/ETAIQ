@@ -1,927 +1,962 @@
 # ETAIQ
+## AI-Powered Explainable Delivery ETA Prediction Platform
 
-[![Project Status](https://img.shields.io/badge/status-completed-green)](https://github.com/ETAIQ)
-[![Python](https://img.shields.io/badge/python-3.11-blue)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/fastapi-0.115.0-blueviolet)](https://fastapi.tiangolo.com/)
-[![License](https://img.shields.io/badge/license-proprietary-lightgrey)](#license)
-
-AI-Powered ETA Prediction Platform for Quick Commerce.
-
-ETAIQ is a data-quality-first prototype for delivery ETA intelligence. The current repository implements the backend data pipeline, decision engine, cleaning engine, validation engine, and supporting reports with a focus on auditability and dataset integrity.
+[![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![XGBoost](https://img.shields.io/badge/XGBoost-Production-orange)](https://xgboost.readthedocs.io/)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ---
 
-## Table of Contents
+## Project Overview
 
-- [Project Overview](#project-overview)
-- [Problem Statement](#problem-statement)
-- [Objectives](#objectives)
-- [Features](#features)
-  - [Implemented](#implemented)
-  - [Planned](#planned)
-- [Current Project Progress](#current-project-progress)
-- [Current Data Snapshot](#current-data-snapshot)
-- [System Architecture](#system-architecture)
-  - [Mermaid Architecture](#mermaid-architecture)
-  - [Text Architecture](#text-architecture)
-- [Repository Structure](#repository-structure)
-- [Technology Stack](#technology-stack)
-- [Data Pipeline](#data-pipeline)
-- [Decision Engine](#decision-engine)
-- [Cleaning Engine](#cleaning-engine)
-- [Validation Engine](#validation-engine)
-- [Testing](#testing)
-- [Reports Generated](#reports-generated)
-- [Current Workflow](#current-workflow)
-- [Installation](#installation)
-# 🚚 ETAIQ – Explainable Delivery ETA Prediction System
+ETAIQ is a full-stack, production-grade platform for predicting and explaining delivery ETAs in quick-commerce operations. It combines a rigorous data quality pipeline, an XGBoost regression model, a FastAPI backend, and a Next.js dashboard into a single cohesive system.
 
-[![Project Status](https://img.shields.io/badge/status-active-brightgreen)](https://github.com/ETAIQ)
-[![Python](https://img.shields.io/badge/python-3.11-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
+The platform is built around three principles: **data integrity first**, **explainability by default**, and **auditability at every stage**. Every prediction is traceable from raw input through cleaning, feature engineering, model inference, and SHAP-based explanation — all surfaced through a real-time dashboard and a conversational AI assistant.
 
-ETAIQ is a data-quality-first codebase focused on preparing delivery datasets for future ETA prediction work. The repository implements a decision-driven cleaning pipeline, an audit-capable cleaning engine, and a comprehensive validation system that together produce verified, processed datasets and governance artifacts.
+ETAIQ is designed to be extended. The current implementation delivers a fully operational prediction and explainability system. Future phases will add model retraining workflows, drift alerting, and a mobile-facing prediction API.
 
 ---
 
-## 📌 Motivation
+## Problem Statement
 
-High-quality ETA prediction depends on reliable input data. In quick-commerce, raw delivery datasets frequently contain missing values, malformed timestamps, invalid GPS coordinates, duplicate records, and broken relationships between entities (orders, riders, restaurants). These issues produce biased analytics and unreliable model behavior.
+Delivery ETA prediction in quick-commerce is harder than it appears. Raw operational datasets contain missing GPS coordinates, malformed timestamps, duplicate records, broken foreign key relationships between orders, riders, and restaurants, and extreme outliers that distort model behaviour. Feeding this data directly into a model produces unreliable predictions and biased analytics.
 
-ETAIQ focuses on the essential, production-grade task of transforming raw delivery data into validated, joinable, and auditable datasets suitable for later modeling and operational use.
+Beyond data quality, most ETA systems are black boxes. Operations teams receive a number with no explanation of why a delivery is predicted to take longer than expected, which features drove the result, or how confident the model is. This makes it impossible to act on predictions or to trust them.
 
----
-
-## ✅ Project Objectives
-
-Only implemented objectives are listed below.
-
-- ✔ Decision Engine
-- ✔ Cleaning Engine
-- ✔ Validation Engine
-- ✔ Reporting
-- ✔ Rollback
-- ✔ Automated Quality Assessment
+ETAIQ addresses both problems. It enforces data quality before any modelling occurs, and it produces human-readable explanations alongside every prediction so that logistics managers can understand, verify, and act on the output.
 
 ---
 
-## ⚙️ Current Features
+## Objectives
 
-Every completed feature implemented in this repository:
-
-- Decision Engine
-  - Approval manifest generation
-  - Rule-based recommendations
-  - Confidence scoring and impact estimation
-- Cleaning Engine
-  - Duplicate handling and removal
-  - Missing-value imputation (config-driven)
-  - Data type normalization
-  - Timestamp normalization and correction
-  - GPS validation and repair
-  - Outlier detection and removal
-  - Foreign key integrity cleaning for `orders` → `restaurants` / `riders`
-  - Audit logging for each cleaning action
-  - Rollback manifest generation (row-level original values)
-  - Cleaning timeline and report generation
-- Validation Engine
-  - Schema validation
-  - Null checks / required field validation
-  - Duplicate checks
-  - GPS validation
-  - Foreign key validation
-  - Timestamp validation
-  - Target/label presence checks
-- Reporting & Artifacts
-  - Validation report
-  - Cleaning report
-  - Timeline report
-  - Rollback manifest
-  - Quality summary report
+- Build a decision-driven data cleaning pipeline that is auditable, reversible, and config-controlled.
+- Produce a validated, joinable dataset that passes all schema, null, duplicate, GPS, foreign key, timestamp, and target checks.
+- Train an XGBoost regression model on the cleaned dataset and register it in a versioned model registry.
+- Serve real-time ETA predictions through a production REST API backed by the registered model.
+- Generate SHAP-based feature importance and local explanation artifacts for every production model.
+- Surface predictions, explanations, model metrics, and monitoring data through a live Next.js dashboard.
+- Provide a conversational AI assistant that guides users through predictions and explains results in plain language.
+- Maintain full governance artifacts — audit logs, rollback manifests, validation reports, and experiment records — at every pipeline stage.
 
 ---
 
-## 🔁 System Workflow
-
-The implemented pipeline follows this sequence:
-
-Raw Dataset
-↓
-Decision Engine
-↓
-Cleaning Engine
-↓
-Validation Engine
-↓
-Processed Dataset
-↓
-Reports
-
-Each stage emits artifacts consumed by the next stage and stores governance artifacts to support audit and traceability.
-
----
-
-## Current System Architecture
-
-```mermaid
-flowchart TD
-  A[Raw CSV Datasets] --> DE[Decision Engine]
-
-  subgraph DecisionEngine [Decision Engine]
-    de1[Rule Engine]
-    de2[Recommendation Engine]
-    de3[Confidence Engine]
-    de4[Impact Estimator]
-    de5[Approval Manifest]
-  end
-
-  DE --> CE[Cleaning Engine]
-
-  subgraph CleaningEngine [Cleaning Engine]
-    ch1[Duplicate Handler]
-    ch2[Normalization]
-    ch3[Datatype Cleaner]
-    ch4[Timestamp Cleaner]
-    ch5[GPS Cleaner]
-    ch6[Integrity Cleaner]
-    ch7[Imputation]
-    ch8[Outlier Handler]
-    ch9[Audit Logger]
-    ch10[Rollback]
-    ch11[Diff Reporter]
-    ch12[Report Generator]
-  end
-
-  CE --> VE[Validation Engine]
-
-  subgraph ValidationEngine [Validation Engine]
-    v1[Schema Validator]
-    v2[Null Validator]
-    v3[Duplicate Validator]
-    v4[GPS Validator]
-    v5[Foreign Key Validator]
-    v6[Timestamp Validator]
-    v7[Target Validator]
-  end
-
-  VE --> P[Processed Dataset]
-  P --> R[Reports]
-
-  %% internal flows
-  DE --> de1 --> de2 --> de3 --> de4 --> de5
-  CE --> ch1 --> ch2 --> ch3 --> ch4 --> ch5 --> ch6 --> ch7 --> ch8 --> ch9 --> ch10 --> ch11 --> ch12
-  VE --> v1 --> v2 --> v3 --> v4 --> v5 --> v6 --> v7
-  de5 --> CE
-  ch12 --> VE
-  v7 --> P
-```
-
-### Architecture Explanation
-
-The repository is organized as a modular data pipeline:
-
-- `Decision Engine` ingests dataset metadata and produces an `approval_manifest` describing cleaning actions to apply.
-- `Cleaning Engine` executes the manifest, applying deterministic repairs and writing processed datasets along with detailed audit logs and a rollback manifest.
-- `Validation Engine` runs a suite of validators against the processed outputs and computes a quantitative quality summary.
-- `Reports` provide human- and machine-readable summaries of changes, timelines, and quality metrics.
-
-All modules are implemented in the `ml/` package and are orchestrated by CLI and script entry points residing under `ml/` and `scripts/`.
-
----
-
-## Cleaning Engine Architecture
-
-```mermaid
-flowchart TD
-  RO[Raw Orders] --> CE[Cleaning Engine]
-
-  subgraph CleaningEngine [Cleaning Engine]
-    ch1[Duplicate Handler]
-    ch2[Normalization]
-    ch3[Datatype Cleaner]
-    ch4[Timestamp Cleaner]
-    ch5[GPS Cleaner]
-    ch6[Integrity Cleaner]
-    ch7[Imputation]
-    ch8[Outlier Handler]
-    ch9[Audit Logger]
-    ch10[Rollback Manifest]
-    ch11[Diff Reporter]
-    ch12[Report Generator]
-  end
-
-  CE --> ch1 --> ch2 --> ch3 --> ch4 --> ch5 --> ch6 --> ch7 --> ch8 --> ch9 --> ch10 --> ch11 --> ch12 --> PO[Processed Orders]
-```
-
-### Modules (implemented)
-
-- Cleaning Engine: orchestration layer executing cleaning steps in configured order and recording execution metadata.
-- Duplicate Handler: detects and removes exact and near-duplicates using deterministic keys.
-- Normalization: standardizes string cases, trims whitespace, and normalizes categorical values.
-- Datatype Cleaner: coerces fields to target types (ints, floats, datetimes) with safe fallbacks.
-- Timestamp Cleaner: parses multiple timestamp formats, detects impossible timestamps, and standardizes to UTC ISO format.
-- GPS Cleaner: validates latitude/longitude ranges, snaps invalid coordinates to nearest valid placeholder when configured.
-- Integrity Cleaner: enforces foreign key constraints, removes or flags orphan rows, and writes repair actions to the audit log.
-- Imputation: fills missing values according to manifest rules (mode, median, constant) and marks imputed fields in metadata.
-- Outlier Handler: flags and optionally removes extreme values based on configurable bounds.
-- Audit Logger: records every transformation with row identifiers, original values, new values, and the rule applied.
-- Rollback: materializes a rollback manifest containing original values and transformation metadata for each affected row.
-- Diff Reporter: summarizes before/after deltas per table and per column.
-- Executors: low-level components that run and persist transformation actions.
-- Report Generator: produces cleaning reports, timelines, and CSV/JSON artifacts for review.
-- Models: lightweight data classes for manifests, actions, and audit records (Pydantic-based).
-- Config: centralizes cleaning rules, thresholds, and policy toggles.
-- Logging: structured logs using the repository logging configuration.
-
-Each module is intentionally small and focused to make unit testing straightforward and to support safe, auditable repairs.
-
----
-
-## Decision Engine Architecture
-
-```mermaid
-flowchart TD
-  MD[Dataset Metadata] --> DE[Decision Engine]
-
-  subgraph DecisionEngine [Decision Engine]
-    re[Rule Engine]
-    rec[Recommendation Engine]
-    conf[Confidence Engine]
-    imp[Impact Estimator]
-    am[Approval Manifest]
-  end
-
-  DE --> re --> rec --> conf --> imp --> am --> CE[Cleaning Engine]
-```
-
-### Modules (implemented)
-
-- Approval Manifest: serializable manifest (JSON) describing the cleaning plan and permissions.
-- Rule Engine: deterministic rule set that detects quality issues and maps them to repair actions.
-- Recommendation Engine: suggests remediation options (drop, impute, repair) with rationale.
-- Confidence Engine: attaches a confidence score to records and fields to guide repair aggressiveness.
-- Impact Estimator: projects the effect of repair actions on dataset completeness and potential downstream joins.
-- Utilities: helpers for statistics, sampling, and manifest generation.
-- Models: schema definitions for manifest entries and decision artifacts.
-- Config: operational parameters for decision thresholds and allowed actions.
-- Report Generator: outputs a decision summary consumed by the cleaning engine and reviewers.
-
-The Decision Engine is designed to separate policy (what to do) from execution (how to do it), enabling review and approval workflows.
-
----
-
-## Validation Engine Architecture
-
-```mermaid
-flowchart TD
-  PD[Processed Dataset] --> VE[Validation Engine]
-
-  subgraph ValidationEngine [Validation Engine]
-    sv[Schema Validator]
-    nv[Null Validator]
-    dv[Duplicate Validator]
-    gv[GPS Validator]
-    fv[Foreign Key Validator]
-    tv[Timestamp Validator]
-    tv2[Target Validator]
-  end
-
-  VE --> sv --> nv --> dv --> gv --> fv --> tv --> tv2 --> QS[Quality Score]
-  QS --> VR[Validation Report]
-  VR --> SR[Summary Report]
-```
-
-### Modules (implemented)
-
-- Validation Engine: orchestration layer that runs configured validators against processed datasets.
-- Schema Validator: ensures required columns and types match `ml/validation/schemas.py` definitions.
-- Null Validator: verifies non-null constraints for required fields.
-- Duplicate Validator: checks for remaining duplicate records based on unique keys.
-- GPS Validator: confirms latitude/longitude ranges and coordinate plausibility.
-- Foreign Key Validator: asserts referential integrity for `orders.restaurant_id` and `orders.rider_id`.
-- Timestamp Validator: validates timestamp formats and ordering rules.
-- Target Validator: ensures the presence and basic sanity of any outcome/label fields used downstream.
-- Schemas: central schema definitions used across validation and cleaning.
-
-The Validation Engine computes per-validator pass/fail results and aggregates them into a final quality summary.
-
----
-
-## 📁 Repository Structure
-
-```
-ETAIQ/
-├── backend/             # FastAPI service (health endpoint, app lifecycle)
-├── docker/              # Container definitions for local development (not used for deploy docs)
-├── docs/                # Architecture diagrams and planning artifacts
-├── frontend/            # UI scaffold (not implemented)
-├── ml/                  # Core pipelines: decision, cleaning, validation, reports
-│   ├── cleaning/
-│   ├── validation/
-│   ├── decision/
-│   └── reports/
-├── scripts/             # Local developer helpers (setup, test, lint)
-├── data/                # Raw / processed datasets (ml/data/raw, ml/data/processed)
-├── .env.example         # Environment template
-├── Makefile             # Common commands
-└── README.md
-```
-
----
-
-## 🧰 Technology Stack
-
-| Category | Tools |
-|---|---|
-| Language | Python 3.11 |
-| Data processing | pandas, NumPy |
-| Validation models | Pydantic |
-| Testing | pytest |
-| Formats | JSON, CSV |
-| Logging | structlog / standard logging |
-| VCS | Git |
-
----
-
-## 🧹 Data Cleaning Pipeline (Detailed)
-
-Each cleaning stage is applied in sequence with audit logging and rollback support.
-
-1. Duplicate Handler
-  - Detects exact duplicate rows and removes them, preserving a record in the audit log.
-2. Normalization
-  - Standardizes text fields (case, whitespace), and categorical labels to canonical values.
-3. Datatype Cleaner
-  - Coerces columns to their schema types; on failure records are flagged for downstream handling.
-4. Timestamp Cleaner
-  - Parses multiple formats, coerces to timezone-aware UTC, and removes implausible timestamps.
-5. GPS Cleaner
-  - Validates lat/lon ranges, detects swapped coordinates, and marks invalid coordinates for repair or removal.
-6. Integrity Cleaner
-  - Validates and repairs foreign keys; orphan rows are either repaired (if feasible) or recorded and removed according to manifest rules.
-7. Imputation
-  - Applies manifest-driven imputation (mean/median/mode/constant) and annotates imputed fields in metadata.
-8. Outlier Handler
-  - Flags or removes extreme values based on configurable thresholds; changes are recorded in the audit log.
-
-All actions are recorded by the `Audit Logger`, and the `Rollback` manifest captures original values for any mutated rows. The `Diff Reporter` and `Report Generator` summarize the before/after state for reviewer consumption.
-
----
-
-## ✅ Validation Pipeline (Detailed)
-
-The validation stage runs after cleaning and produces pass/fail signals for each check.
-
-- Schema Validator: ensures columns exist and types match the canonical schema.
-- Null Validator: checks required fields are populated.
-- Duplicate Validator: confirms deduplication success.
-- GPS Validator: verifies coordinate plausibility and bounding.
-- Foreign Key Validator: verifies `orders.restaurant_id` and `orders.rider_id` are resolvable to parent tables.
-- Timestamp Validator: ensures timestamps are parseable and logical (e.g., pickup < dropoff where applicable).
-- Target Validator: ensures label fields used for later evaluation are present and non-corrupt.
-
-The engine aggregates validator outputs into a numerical or categorical quality summary used by reports.
-
----
-
-## 📊 Reports Generated
-
-The implemented pipeline produces the following artifacts:
-
-- Cleaning Report — per-table and per-column summaries of applied transformations.
-- Timeline — chronological record of cleaning actions applied to datasets.
-- Rollback Manifest — row-level original values and transformation metadata to enable restoration.
-- Quality Report — aggregated validation metrics and pass rates.
-- Validation Report — detailed validator outputs and failing samples.
-- Summary Report — high-level digest for stakeholders.
-- Before/After Report — diffs highlighting dataset changes pre- and post-cleaning.
-
-All reports are serialized to JSON and CSV and are stored alongside processed datasets for review.
-
----
-
-## Results
-
-| Dataset | Rows |
-|---:|---:|
-| Restaurants | 3,917 |
-| Riders | 5,832 |
-| Orders | 264,777 |
-
-| Metric | Value |
-|---|---|
-| Overall Quality | 100% |
-| Schema | 100% |
-| Null | 100% |
-| Duplicate | 100% |
-| GPS | 100% |
-| Foreign Key | 100% |
-| Timestamp | 100% |
-| Target | 100% |
-| Checks Passed | 15 / 15 |
-
-> These results reflect the current processed dataset as produced by the implemented cleaning and validation pipeline.
-
----
-
-## 🧪 Testing
-
-The repository includes an automated test suite focused on pipeline correctness:
-
-- Unit tests for validator logic (schema, nulls, duplicates, GPS, foreign keys, timestamps).
-- Unit tests for cleaning primitives (dedupe, impute, type coercion, timestamp parsing).
-- Integration tests that run cleaning → validation on sample datasets to assert expected artifacts and scores.
-
-Run the test suite with:
-
-```bash
-make test
-```
-
-Tests are implemented with `pytest` and include fixtures for small in-repo sample datasets used by the pipeline.
-
----
-
-## 🏗️ Engineering Highlights
-
-- Clear separation of concerns: decision, cleaning, validation, and reporting are separate modules.
-- Audit-first design: every cleaning action is recorded and reversible via rollback manifests.
-- Config-driven behavior: cleaning rules and thresholds are centralized and versionable.
-- Lightweight, testable primitives: modules are intentionally small to support unit testing and incremental improvements.
-- Governance artifacts: reports and manifests provide a complete trail from raw input to validated output.
-
-These qualities make ETAIQ suitable for technical interviews and architecture discussions focused on production-ready data pipelines.
-
----
-
-## 🔮 Future Work (Planned)
-
-Only planned items are listed below; none are implemented in this repository.
-
-- Exploratory Data Analysis (EDA)
-- Feature Engineering
-- Machine Learning / Model Training
-- Model Explainability
-- Prediction API
-- Frontend
-- Deployment
-- Monitoring
-
----
-
-## Contributing
-
-Contributions are welcome. Please:
-
-1. Open an issue to discuss major changes.
-2. Fork the repository and create a feature branch.
-3. Run tests and add new tests for new behaviors.
-4. Submit a pull request with a clear description and change summary.
-
-Please follow existing code style and keep commits small and well-scoped.
-
----
-
-## License
-
-This repository is licensed under the MIT License — see the `LICENSE` file for details.
-
----
-
-## Acknowledgements
-
-- FastAPI for the backend scaffolding.
-- pandas and NumPy for data processing primitives.
-- The project contributors and reviewers who helped shape the pipeline design.
-
-| Orders | 264,777 |
-
-### Current Quality
-
-- Validation Score: **100 / 100**
-- Checks Passed: **15 / 15**
-
-This score reflects the current processed dataset quality after the implemented pipeline.
-
----
-
-## System Architecture
-
-### Mermaid Architecture
-
-```mermaid
-flowchart TD
-  A[Raw CSV Data] --> B[Decision Engine]
-  B --> C[Cleaning Engine]
-  C --> D[Validation Engine]
-  D --> E[Processed Dataset]
-  E --> F[Exploratory Data Analysis]\n(Planned)
-  F --> G[Feature Engineering]\n(Planned)
-  G --> H[Machine Learning]\n(Planned)
-  H --> I[Prediction API]\n(Planned)
-  I --> J[AI Assistant]\n(Planned)
-  J --> K[Frontend]\n(Planned)
-
-  subgraph Current Implementation
-    A
-    B
-    C
-    D
-    E
-  end
-
-  subgraph Future Extensions
-    F
-    G
-    H
-    I
-    J
-    K
-  end
-```
-
-### Text Architecture
-
-The current system is structured as a linear pipeline with clearly separated concerns.
-
-- Raw CSV Data: ingest restaurant, rider, and order files.
-- Decision Engine: derive cleanup approvals and data-quality actions.
-- Cleaning Engine: perform repair and normalization operations.
-- Validation Engine: verify the cleaned dataset against quality gates.
-- Processed Dataset: generate validated output ready for future analytics.
-
-Future extensions will add EDA, feature engineering, model training, prediction serving, AI assistance, and frontend visualization.
-
----
-
-## Repository Structure
-
-```text
-ETAIQ/
-├── backend/           # FastAPI application, config, schemas, and service layers
-├── docker/            # Docker and Docker Compose configuration
-├── docs/              # Architecture, project specification, roadmap, and contribution guidance
-├── frontend/          # Next.js frontend scaffold (planned)
-├── ml/                # Data pipeline, validation, cleaning, decision, and reporting code
-├── scripts/           # Developer utilities for setup, lint, format, test, and local workflow
-├── .env.example       # Environment configuration template
-├── Makefile           # Common commands and workspace automation
-└── README.md          # Project overview and usage guide
-```
-
-### Folder Summary
-
-- `backend/`: FastAPI app, health endpoint, application lifecycle, and runtime configuration.
-- `docker/`: Local development container setup and compose orchestration.
-- `docs/`: Written architecture, specification, and project planning documents.
-- `frontend/`: Placeholder Next.js workspace for later UI development.
-- `ml/`: Core data-quality pipeline modules, dataset handling, and report generation.
-- `scripts/`: Shell scripts for setup, linting, formatting, testing, and local stack startup.
+## Key Features
+
+### Data Pipeline
+- **Decision Engine** — rule-based quality assessment that produces an approval manifest before any data is modified
+- **Cleaning Engine** — deterministic repairs for duplicates, missing values, type coercion, timestamps, GPS coordinates, outliers, and foreign key integrity, with full audit logging and row-level rollback
+- **Validation Engine** — seven independent validators (schema, null, duplicate, GPS, foreign key, timestamp, target) producing a quantitative quality score
+- **Quality Score** — 100/100 on the current processed dataset across all 15 validation checks
+
+### Machine Learning
+- **Feature Engineering** — temporal, geographical, operational, and business features derived from merged order, restaurant, and rider datasets
+- **Model Training** — multi-model comparison (XGBoost, Random Forest, Linear Regression) with cross-validation, hyperparameter search, and automatic production promotion
+- **Model Registry** — versioned artifact storage with status lifecycle (Production / Archived), metrics, and metadata
+- **Experiment Tracking** — per-run records of hyperparameters, metrics, training time, and dataset version
+- **Explainability** — SHAP summary plots, waterfall charts, global feature importance rankings, and local contribution scores persisted as artifacts
+
+### Prediction API
+- **REST endpoint** (`POST /api/v1/predict`) serving the registered production XGBoost model
+- **Monitoring** — per-prediction summary statistics (mean, std, min, max) persisted for drift analysis
+- **Drift Detection** — baseline comparison engine for feature distribution shift
+- **Performance metrics** — MAE, RMSE, MAPE, R², and inference latency exposed via API
+
+### Frontend Dashboard
+- **Production dashboard** — live KPI cards, model comparison chart, training history timeline, activity feed, and system health panel
+- **Prediction workspace** — dynamic feature form built from model metadata, live prediction result, and inline explainability preview
+- **Explainability workspace** — sortable feature contribution table, local explanation panel, SHAP summary plot, waterfall chart, and raw metadata viewer
+- **AI Assistant** — conversational interface for guided ETA prediction, plain-language explanation, feature importance queries, and general logistics questions
+
+### AI Assistant
+- Section-based guided prediction flow collecting 14 model features across 4 logical groups
+- Automatic post-prediction explanation with confidence score, risk level, and LLM-generated narrative
+- Intent detection for greetings, help, model info, dataset info, feature importance, and general logistics questions
+- OpenRouter-backed LLM (DeepSeek) with structured fallbacks when the LLM is unavailable
 
 ---
 
 ## Technology Stack
 
-| Category | Tools |
-|----------|-------|
-| Language | Python 3.11 |
-| Backend | FastAPI |
-| Data Processing | pandas, NumPy |
-| Validation & Cleaning | Custom pipeline modules in `ml/` |
-| Testing | pytest |
-| Containerization | Docker, Docker Compose |
-| Frontend | Next.js, React (planned) |
-| Packaging | setuptools, `pyproject.toml` |
+| Layer | Technology |
+|---|---|
+| Language | Python 3.11, TypeScript |
+| Backend framework | FastAPI 0.115, Uvicorn |
+| Frontend framework | Next.js 16, React 19, Tailwind CSS 4 |
+| ML — training | XGBoost, scikit-learn, pandas, NumPy |
+| ML — explainability | SHAP, custom artifact generator |
+| ML — feature engineering | Custom pipeline (temporal, geo, operational, business features) |
+| Data validation | Pydantic, Pandera, Great Expectations |
+| AI assistant | OpenRouter API (DeepSeek), OpenAI SDK |
+| Charting | Recharts |
 | Logging | structlog |
+| Testing | pytest, pytest-asyncio, Vitest, Testing Library |
+| Containerisation | Docker, Docker Compose |
+| CI | GitHub Actions |
+| Database | PostgreSQL (configured, schema-ready) |
+| Serialisation | JSON, CSV, joblib |
 
 ---
 
-## Data Pipeline
+## Dataset
 
-The data pipeline is the core of the current ETAIQ implementation. It is designed to enforce data quality before any modeling or prediction work is attempted.
+The dataset is a synthetic quick-commerce operational dataset generated to reflect realistic delivery operations in a dense urban environment (Bengaluru, India). It spans three relational tables that are joined during feature engineering.
 
-### Core stages
+| Dataset | Rows (raw) | Rows (processed) | Columns |
+|---|---:|---:|---:|
+| orders.csv | 307,500 | 264,777 | 12 |
+| restaurants.csv | 4,266 | 3,917 | 8 |
+| riders.csv | 6,400 | 5,832 | 8 |
 
-1. Decision Engine
-   - Evaluates raw datasets.
-   - Generates approval manifests for cleaning.
-2. Cleaning Engine
-   - Applies deterministic fixes and transformations.
-   - Produces audit logs and rollback metadata.
-3. Validation Engine
-   - Confirms dataset integrity.
-   - Computes a dataset quality score.
-4. Reporting
-   - Outputs cleaning and validation reports for review.
+**Target variable:** `actual_delivery_time_min` — the actual end-to-end delivery time in minutes, measured from order placement to delivery confirmation. The target has a mean of 25.6 minutes, a median of 24.4 minutes, and a right-skewed distribution (skewness 2.80) driven by a small number of delayed deliveries.
 
-### Workflow
+**Features used for ETA prediction** (14 features, sourced from the merged dataset):
 
-- Raw records enter the pipeline from `ml/data/raw`.
-- The decision engine defines how the records should be cleaned.
-- The cleaning engine transforms the records and writes processed output.
-- The validation engine verifies the final dataset and raises quality assertions.
-
-This pipeline ensures that the dataset is reliable, transparent, and ready for future extension.
-
----
-
-## Decision Engine
-
-### Purpose
-
-The Decision Engine defines the data-quality decisions that drive the cleaning pipeline.
-
-### Workflow
-
-- Ingest raw dataset metadata and statistics.
-- Evaluate quality conditions with rule logic.
-- Assign confidence and recommendations for repair actions.
-- Build an approval manifest that the cleaning engine can execute.
-
-### Implemented Modules
-
-- Approval Manifest
-- Rule Engine
-- Confidence Engine
-- Recommendation Engine
-- Impact Estimator
-
-### Why it matters
-
-Having an explicit decision engine separates business rules from data transformation. It makes the pipeline easier to review, extend, and maintain.
+| Feature | Source table | Description |
+|---|---|---|
+| `drop_lat` | orders | Drop-off latitude |
+| `drop_lon` | orders | Drop-off longitude |
+| `order_size` | orders | Number of items in the order |
+| `order_value` | orders | Monetary value of the order |
+| `lat` | restaurants | Restaurant latitude |
+| `lon` | restaurants | Restaurant longitude |
+| `avg_rating` | restaurants | Average customer rating of the restaurant |
+| `prep_capacity` | restaurants | Maximum concurrent orders the restaurant can prepare |
+| `id_rider` | riders | Rider identifier (used as a categorical proxy for rider behaviour) |
+| `lat_rider` | riders | Rider current latitude |
+| `lon_rider` | riders | Rider current longitude |
+| `completed_orders` | riders | Total historical deliveries completed by the rider |
+| `shift_hours` | riders | Hours the rider has been on shift |
+| `current_load` | riders | Number of active deliveries the rider is currently handling |
 
 ---
 
-## Cleaning Engine
+## Data Cleaning Pipeline
 
-### Purpose
+The cleaning pipeline is implemented as a deterministic, config-driven engine that operates on an approval manifest produced by the Decision Engine. Every action is logged to an audit trail and a rollback manifest is written after each run, enabling full reversal to the raw state.
 
-The Cleaning Engine executes repair actions that make the dataset consistent and usable.
+The pipeline processes datasets in dependency order — restaurants and riders before orders — so that foreign key repair in the orders table uses the latest processed primary key sets.
 
-### Implemented Modules
+**Missing values**
 
-- Duplicate Removal
-- Missing Value Imputation
-- Data Type Cleaning
-- Timestamp Cleaning
-- GPS Cleaning
-- Outlier Removal
-- Foreign Key Integrity Cleaning
-- Audit Logging
-- Rollback Manifest
-- Cleaning Reports
-- Cleaning Timeline
+Null imputation is applied column-by-column using the strategy most appropriate for the column type. Numeric columns are imputed with the column median. Categorical and string columns are imputed with the column mode. In the current run, 26,402 nulls were imputed in `actual_delivery_time_min`, 12,453 in `rider_id`, 15,307 in `promised_eta`, and 150,492 in `promo_code_used`. Completeness improved from 99.65% to 100% across all datasets.
 
-### How it works
+**Duplicate removal**
 
-The cleaning engine applies transformations in a defined sequence and records each action. Changes are persisted to processed datasets and tracked in rollback artifacts.
+Exact duplicate rows are identified and removed using `keep=first`. The pipeline removed 7,500 duplicate rows from orders, 266 from restaurants, and 400 from riders. Consistency improved from 85.19% to 100%.
 
-### Why each step matters
+**GPS validation**
 
-- Duplicate Removal: removes exact duplicate rows to keep analysis accurate.
-- Missing Value Imputation: fills gaps that would otherwise break validation.
-- Data Type Cleaning: ensures typed fields comply with schema expectations.
-- Timestamp Cleaning: keeps temporal data consistent for downstream logic.
-- GPS Cleaning: validates spatial coordinates for location-aware features.
-- Outlier Removal: filters invalid values that distort metrics.
-- Foreign Key Cleaning: enforces relationships between orders, riders, and restaurants.
-- Audit Logging & Rollback: provides traceability and restores previous states if needed.
+Latitude values are validated against the range [−90.0, 90.0] and longitude values against [−180.0, 180.0]. Out-of-bounds values are either nullified (FLAG action) or the containing row is dropped (DROP action), depending on the manifest instruction. GPS validation passed at 100% on the processed dataset across all coordinate columns.
+
+**Timestamp validation**
+
+All timestamp columns are routed through a dedicated `TimestampCleaner` that parses values from multiple formats — ISO 8601, slash-delimited dates, Unix epoch seconds, and Unix epoch milliseconds — and standardises output to `YYYY-MM-DD HH:MM:SS`. The orders `timestamp` column contained 300,000 rows; all 300,000 were parsed successfully with zero unparsed nulls.
+
+**Outlier handling**
+
+Numeric outliers are removed using a 3-standard-deviation filter. Identifier columns are explicitly excluded from outlier detection. In the current run, 1,030 rows were removed from `actual_delivery_time_min`, 9,272 from `order_value` (across two passes), 5,694 from `drop_lat`, 1,383 from `promised_eta`, 83 from `restaurants.prep_capacity`, 112 from `riders.lat`, and 56 from `riders.shift_hours`.
+
+**Data integrity checks**
+
+Foreign key integrity is enforced by comparing `restaurant_id` and `rider_id` values in the orders table against the primary key sets of the restaurants and riders tables. Orphan rows — orders referencing non-existent restaurants or riders — are dropped. In the current run, 10,526 orphan rows were removed for `restaurant_id` and 7,318 for `rider_id`. Referential integrity improved from 99.22% to 100%.
+
+The overall data quality score improved from **94.6% to 100.0%** across all 15 validation checks.
 
 ---
 
-## Validation Engine
+## Exploratory Data Analysis
 
-### Purpose
+EDA was performed on the processed datasets in `ml/notebooks/ETAIQ_EDA.ipynb` after the cleaning pipeline had achieved a quality score of 100/100. All analysis was conducted exclusively on the cleaned data.
 
-The Validation Engine verifies that the cleaned dataset satisfies the required quality criteria.
+**Dataset structure**
 
-### Implemented Validators
+The three processed datasets contain 264,777 orders, 3,917 restaurants, and 5,832 riders. Orders carry 9 numerical and 3 categorical columns. Restaurants carry 5 numerical and 3 categorical columns. Riders carry 6 numerical and 2 categorical columns.
 
-- Schema Validator
-- Null Validator
-- Duplicate Validator
-- GPS Validator
-- Foreign Key Validator
-- Timestamp Validator
-- Target Validator
+**Descriptive statistics**
 
-### What each validator checks
+Key observations from the numerical summaries:
 
-- Schema Validator: verifies columns and data types.
-- Null Validator: ensures required values are present.
-- Duplicate Validator: asserts dataset uniqueness.
-- GPS Validator: checks latitude/longitude validity.
-- Foreign Key Validator: verifies referential integrity for orders.
-- Timestamp Validator: confirms timestamp correctness.
-- Target Validator: validates label or target field integrity.
+- Restaurant and rider GPS coordinates are tightly clustered (standard deviation ≈ 0.01 degrees), consistent with a single urban delivery zone.
+- `avg_rating` ranges from 2.8 to 4.9 with a near-symmetric distribution (skewness 0.02), indicating a well-distributed quality spread across restaurants.
+- `prep_capacity` ranges from 0 to 20 with a slight positive skew (0.35), reflecting a mix of small and large restaurant kitchens.
+- `completed_orders` for riders is heavily right-skewed (skewness 1.35), with a median of 289 but a mean of 846, indicating a long tail of highly experienced riders.
+- `order_value` is right-skewed (skewness 0.94), with a median of ₹373 and a mean of ₹434.
+- `actual_delivery_time_min` is strongly right-skewed (skewness 2.80, kurtosis 19.08), with a median of 24.4 minutes and a long tail extending to 137.2 minutes.
 
-### Current Score
+**Data quality verification**
 
-- Validation Score: **100 / 100**
-- Checks Passed: **15 / 15**
+Independent quality checks in the notebook confirmed zero missing values in orders and restaurants, and zero duplicate rows across all three datasets. The riders dataset retained 215 nulls in `vehicle_type`, which is a non-critical column excluded from model training.
 
-This indicates the current processed dataset passes all implemented validation rules.
+**Univariate analysis**
+
+Distributions were examined for all numerical features across all three datasets. GPS coordinate columns exhibit uniform distributions within the delivery zone. Rating and capacity columns show approximately symmetric distributions. Rider experience (`completed_orders`) and delivery time (`actual_delivery_time_min`) exhibit right-skewed distributions, which informed the decision to use a tree-based model rather than a linear one.
+
+**Bivariate and multivariate analysis**
+
+Correlation analysis and scatter plots were used to examine relationships between features and the target. `order_size` showed the strongest individual correlation with delivery time, consistent with its top SHAP importance ranking (0.4797) in the production model. Rider `current_load` and `completed_orders` showed moderate correlations with delivery time, reflecting the expected relationship between rider workload, experience, and delivery speed.
 
 ---
 
-## Testing
+## Feature Engineering
 
-### Test coverage areas
+Feature engineering is implemented as a four-stage pipeline: temporal features, geographical features, operational features, and business features. The pipeline operates on the merged dataset produced by joining orders, restaurants, and riders on their respective foreign keys.
 
-- Validation test cases for schema, null handling, duplicates, GPS, foreign keys, timestamps, and target fields.
-- Cleaning test cases for deduplication, imputation, data type repair, and integrity cleaning.
-- Decision engine tests for approval manifest and rule-based recommendations.
+**Encoding**
 
-### Running tests
+Categorical features are encoded using two strategies determined by cardinality. Low-cardinality columns (e.g. `cuisine`, `vehicle_type`, `order_status`) are one-hot encoded using scikit-learn's `OneHotEncoder` with `handle_unknown='ignore'`. Ordinal columns are encoded using `OrdinalEncoder` with `handle_unknown='use_encoded_value'`. High-cardinality columns (unique ratio > 10% or unique count > 100) are skipped to prevent dimensionality explosion. Fitted encoders are persisted to `ml/models/preprocessing/` for inference-time reuse.
 
-```bash
-make test
+**Scaling**
+
+Continuous numerical features are standardised using scikit-learn's `StandardScaler`. Boolean columns, identifier columns, and one-hot-encoded columns are excluded from scaling. The fitted scaler is persisted alongside the encoders for inference-time reuse.
+
+**Feature selection**
+
+A `RandomForestRegressor` (100 estimators, random seed 42) is used to rank features by importance after encoding and scaling. Constant features (zero variance) and highly correlated features (Pearson correlation > 0.95) are removed before the importance ranking is computed. The ranked feature list is exported to `ml/data/features/selected_features.csv`.
+
+**Final feature set**
+
+The production XGBRegressor v2 model was trained on 14 features drawn directly from the merged dataset, bypassing the engineered feature set in favour of the raw joined columns that carried the highest predictive signal:
+
+`drop_lat`, `drop_lon`, `order_size`, `order_value`, `lat`, `lon`, `avg_rating`, `prep_capacity`, `id_rider`, `lat_rider`, `lon_rider`, `completed_orders`, `shift_hours`, `current_load`
+
+The top feature by SHAP importance is `order_size` (importance score 0.4797), followed by rider and restaurant location coordinates. The model was trained on 211,821 samples and evaluated on 52,956 samples, achieving MAE 4.44 minutes, RMSE 7.51 minutes, MAPE 18.16%, and R² 0.375.
+
+---
+
+## Machine Learning Pipeline
+
+**Data split**
+
+The merged dataset of 264,777 rows is split into training and test sets using an 80/20 ratio with a fixed random seed (42) for reproducibility. The production XGBRegressor v2 was trained on 211,821 samples and evaluated on 52,956 samples.
+
+**Model training**
+
+Training is orchestrated by `TrainingPipelineEngine`, which iterates over all registered regression models, fits each one on the training split, and evaluates it on the held-out test split. Each model is wrapped in a scikit-learn `Pipeline` that applies the `SklearnPreprocessor` before the estimator, ensuring that preprocessing is consistently applied and never leaks test-set statistics into training. The four registered models are:
+
+- `LinearRegression` — baseline linear model
+- `RandomForestRegressor` — 100 estimators, random seed 42
+- `GradientBoostingRegressor` — gradient boosted trees, random seed 42
+- `XGBRegressor` — XGBoost with `reg:squarederror` objective, 100 estimators, random seed 42
+
+**Hyperparameter tuning**
+
+`HyperparameterSearchEngine` wraps scikit-learn's `GridSearchCV` with the same preprocessing pipeline. The search grid for XGBRegressor covers `n_estimators` (50, 100), `max_depth` (3, 5), `learning_rate` (0.01, 0.1), and `subsample` (0.8, 1.0). The scoring metric is `neg_mean_absolute_error` and the default cross-validation fold count is 5. All parameter combinations are evaluated and the best configuration is returned as a `HyperparameterSearchResult`.
+
+**Model selection**
+
+After all models are evaluated, `ModelComparisonEngine` ranks them by MAE in ascending order. `BestModelSelectionEngine` selects the rank-1 model and returns it as a `BestModelResult`. The production XGBRegressor v2 was selected from a separate dedicated training run on the full 14-feature set, achieving lower MAE than the pipeline comparison run.
+
+Model comparison leaderboard (pipeline run on the full dataset):
+
+| Rank | Model | MAE | RMSE | MAPE | R² | Training time |
+|---|---|---:|---:|---:|---:|---:|
+| 1 | XGBRegressor | 4.90 | 7.92 | 20.00% | 0.292 | 0.55s |
+| 2 | GradientBoostingRegressor | 5.00 | 7.92 | 20.76% | 0.292 | 21.59s |
+| 3 | RandomForestRegressor | 5.23 | 8.21 | 21.80% | 0.238 | 68.13s |
+| 4 | LinearRegression | 5.53 | 8.42 | 23.21% | 0.200 | 0.04s |
+
+**Registry**
+
+`ModelRegistryEngine` manages the full model lifecycle. Each registered model is stored as a JSON record containing the model name, version number, artifact path, evaluation metrics, creation timestamp, and status. The status lifecycle has two states: `Production` and `Archived`. Promoting a new version to Production automatically archives the previous Production entry. The registry persists to `ml/data/training/model_registry/` and is reloaded on startup. Explainability artifact paths are attached to registry entries via `update_explainability_metadata()` after artifact generation.
+
+**Prediction pipeline**
+
+`PredictionPipelineEngine` handles end-to-end inference. It accepts raw feature input as a DataFrame, NumPy array, or list, loads the persisted model artifact from disk, and passes the input through the fitted sklearn Pipeline (which applies preprocessing internally). The result is a `PredictionPipelineResult` containing the prediction array, row count, model name, version, and total pipeline latency. Per-prediction summary statistics (mean, std, min, max) are recorded by `MonitoringEngine` after each inference call for downstream drift analysis.
+
+---
+
+## Model Performance
+
+**Evaluation metrics**
+
+The production XGBRegressor v2 is evaluated on four regression metrics computed by `EvaluationEngine` against the held-out test set of 52,956 samples:
+
+| Metric | Value |
+|---|---:|
+| MAE | 4.44 min |
+| RMSE | 7.51 min |
+| MAPE | 18.16% |
+| R² | 0.375 |
+| Training time | 0.40s |
+| Inference time | 0.016s |
+
+MAE of 4.44 minutes means the model's predictions are on average 4.44 minutes away from the actual delivery time. The RMSE of 7.51 minutes is higher than MAE, reflecting the influence of the right-skewed tail in the target distribution. The R² of 0.375 indicates that the model explains 37.5% of the variance in delivery time — a reasonable result given that the target is driven by real-world operational noise that is not captured in the available features.
+
+**Cross-validation**
+
+`CrossValidationEngine` runs K-fold cross-validation using scikit-learn's `cross_validate` with the same preprocessing pipeline fitted independently per fold to prevent data leakage. The default configuration is 5 folds with shuffle enabled and random seed 42. Fold-level MAE, RMSE, and R² are aggregated into mean and standard deviation values. The XGBRegressor cross-validation mean R² was 0.276 with a standard deviation of 0.004, indicating stable generalisation across folds.
+
+**Confidence estimation**
+
+`ExplainabilityEngine` derives a confidence score and uncertainty estimate from the feature importance distribution. The confidence score is computed as the ratio of the strongest feature's importance to the total importance mass, clamped to [0.05, 1.0]. The uncertainty estimate is `1 − confidence`. For the production XGBRegressor v2, `order_size` holds 47.97% of total importance, producing a high confidence signal. The AI assistant surfaces this confidence score alongside every prediction as a human-readable risk level (Low / Medium / High).
+
+---
+
+## Explainability
+
+**Feature importance**
+
+Global feature importance is extracted from the XGBRegressor's `feature_importances_` attribute, which reflects the gain-based importance computed during tree construction. The ranked importance scores for the production model are:
+
+| Rank | Feature | Importance |
+|---|---|---:|
+| 1 | `order_size` | 0.4797 |
+| 2 | `prep_capacity` | 0.1103 |
+| 3 | `lon` | 0.0617 |
+| 4 | `lat` | 0.0601 |
+| 5 | `drop_lat` | 0.0462 |
+| 6 | `drop_lon` | 0.0411 |
+| 7 | `lon_rider` | 0.0403 |
+| 8 | `lat_rider` | 0.0402 |
+| 9 | `current_load` | 0.0296 |
+| 10 | `shift_hours` | 0.0258 |
+| 11 | `completed_orders` | 0.0225 |
+| 12 | `id_rider` | 0.0205 |
+| 13 | `order_value` | 0.0118 |
+| 14 | `avg_rating` | 0.0103 |
+
+`order_size` dominates with an importance score of 0.4797, accounting for nearly half of the model's total decision signal. Restaurant preparation capacity (`prep_capacity`) is the second most important feature at 0.1103. Location coordinates for the restaurant and drop-off point collectively account for approximately 20% of importance, reflecting the role of delivery distance in ETA prediction.
+
+**Local prediction explanations**
+
+`ExplainabilityEngine.explain_prediction()` generates a per-prediction local explanation by multiplying each feature's input value by its global importance weight to produce a contribution score. The result is a ranked list of feature contributions for the specific input, showing which features pushed the prediction higher or lower for that individual order. The AI assistant presents this as a plain-language narrative after every prediction.
+
+**Explainability artifacts**
+
+`ExplainabilityArtifactGenerator` persists the following artifacts to `ml/artifacts/explainability/{model_name}/{version}/` after each training run:
+
+| Artifact | Format | Description |
+|---|---|---|
+| `feature_importance.json` | JSON | Global importance scores and ranked feature list |
+| `feature_importance.csv` | CSV | Ranked feature importance for tabular consumption |
+| `local_explanation.json` | JSON | Per-prediction contribution scores and ranked impacts |
+| `shap_summary.json` | JSON | Top-10 feature summary in SHAP-compatible format |
+| `summary_plot.png` | PNG | Bar chart of global feature importance |
+| `waterfall_plot.png` | PNG | Bar chart of local feature contribution scores |
+| `metadata.json` | JSON | Model name, version, feature names, metrics, and artifact paths |
+
+Artifact paths are registered back into the model registry via `update_explainability_metadata()`, making them accessible to the prediction API and frontend dashboard without filesystem traversal.
+
+**Explainable AI workflow**
+
+The end-to-end explainability workflow is:
+
+1. After training, `ExplainabilityArtifactGenerator.generate_for_model()` extracts global importance from the fitted model and generates all artifacts.
+2. Artifact paths are attached to the registry entry for the production model version.
+3. At inference time, the prediction API calls `ExplainabilityEngine.explain_prediction()` with the input features to produce a local explanation for that specific request.
+4. The frontend explainability workspace reads the persisted artifacts to render the SHAP summary plot, waterfall chart, and sortable feature contribution table.
+5. The AI assistant calls the same local explanation logic and passes the result to the LLM to generate a plain-language narrative describing why the predicted ETA is what it is.
+
+---
+
+## AI Assistant
+
+The AI assistant is a conversational interface embedded in the frontend dashboard that enables logistics operators to interact with the ETAIQ platform in natural language. It is implemented as a stateful chat component backed by a FastAPI endpoint (`POST /api/v1/assistant/chat`) that routes each message through an intent detection layer before dispatching to the appropriate handler. The assistant is designed to operate fully without an LLM connection, degrading gracefully to structured template responses when the OpenRouter service is unavailable.
+
+**Natural language interface**
+
+The assistant accepts free-text input and classifies each message into one of eight intent categories: `greeting`, `help`, `predict_eta`, `feature_importance`, `explain_prediction`, `model_info`, `dataset_info`, and `general`. Classification is performed by a keyword-matching engine that evaluates the lowercased message against intent-specific token sets. The matched intent determines which handler processes the message and what context is injected into the LLM prompt. Unrecognised messages fall through to the `general` intent, which routes the query directly to the LLM with a logistics-domain system prompt.
+
+**ETA prediction workflow**
+
+When the `predict_eta` intent is detected, the assistant initiates a structured prediction workflow. It calls `POST /api/v1/predict` with the collected feature values, receives the predicted delivery time in minutes, and immediately calls `ExplainabilityEngine.explain_prediction()` to generate a local feature contribution ranking for that specific input. The raw prediction and explanation are then passed to the LLM to produce a plain-language response. The response includes the predicted ETA in minutes, a confidence score, a risk level (Low / Medium / High), and a narrative describing the dominant factors that drove the result.
+
+**Guided prediction mode**
+
+When a user requests an ETA prediction without supplying feature values, the assistant enters guided prediction mode. This is a section-based collection flow that gathers all 14 model features across four logical groups: order details (`drop_lat`, `drop_lon`, `order_size`, `order_value`), restaurant details (`lat`, `lon`, `avg_rating`, `prep_capacity`), rider details (`id_rider`, `lat_rider`, `lon_rider`, `completed_orders`), and rider status (`shift_hours`, `current_load`). The assistant presents each group as a conversational prompt, validates the supplied values against expected types and ranges, and advances to the next section only when the current group is complete. Collected values are accumulated in the session state and submitted as a single prediction request once all four sections are filled.
+
+**Feature importance explanations**
+
+The `feature_importance` intent handler retrieves the global importance rankings from the production model's registry entry and formats them as a ranked plain-language list. The response identifies the top features by name, states their importance scores, and explains in operational terms what each feature represents and why it influences delivery time. For the production XGBRegressor v2, the assistant explains that `order_size` accounts for nearly half of the model's decision signal, that `prep_capacity` reflects kitchen throughput constraints, and that the location coordinate cluster collectively encodes delivery distance.
+
+**Prediction explanation**
+
+The `explain_prediction` intent is triggered when a user asks why a prediction was made or requests more detail about a result. The handler retrieves the most recent local explanation from the session state — the ranked feature contribution scores computed at inference time — and passes them to the LLM with an instruction to produce a plain-language causal narrative. The response describes which features had the largest positive and negative contributions to the predicted ETA for that specific order, using operational language accessible to logistics managers rather than statistical terminology.
+
+**Model information**
+
+The `model_info` intent handler queries the model registry for the current Production entry and returns a structured summary of the active model. The response includes the model name and version, evaluation metrics (MAE, RMSE, MAPE, R²), training and inference latency, the number of training samples, the feature count, and the registry status. This allows operators to verify which model version is serving predictions without navigating to the dashboard metrics panel.
+
+**Dataset information**
+
+The `dataset_info` intent handler returns a summary of the processed dataset used to train the production model. The response covers the three source tables (orders, restaurants, riders), their processed row counts, the target variable definition, the data quality score, and the key cleaning actions applied by the pipeline. This gives operators visibility into the data provenance of the model without requiring access to the pipeline logs or validation reports.
+
+**OpenRouter LLM integration**
+
+The assistant uses the OpenRouter API to access the DeepSeek language model for natural language generation. Requests are issued using the OpenAI SDK with the base URL overridden to `https://openrouter.ai/api/v1` and the model identifier set to `deepseek/deepseek-chat`. Each request carries a system prompt that establishes the assistant's role as a logistics AI specialising in delivery ETA prediction, constrains responses to the operational domain, and instructs the model to be concise and factual. The API key is read from the `OPENROUTER_API_KEY` environment variable and is never embedded in source code or committed to version control.
+
+**Conversation management**
+
+Conversation state is maintained server-side as a session object keyed by a UUID assigned at the start of each chat session. The session stores the full message history as a list of role-content pairs (`user` / `assistant`), the guided prediction accumulator (partially collected feature values and the current section index), and the most recent local explanation result. The message history is passed to the LLM on every turn so that the model has full conversational context. Session objects are held in memory and are not persisted between server restarts in the current implementation.
+
+**Fallback mechanisms**
+
+The assistant implements a two-level fallback strategy to ensure responses are always returned regardless of LLM availability. At the first level, every intent handler constructs a complete structured response using local data — registry queries, explanation engine calls, and template strings — before the LLM is invoked. If the OpenRouter API call fails for any reason (network error, rate limit, invalid key, timeout), the structured response is returned directly without LLM augmentation. At the second level, if intent classification produces no confident match, the message is routed to the `general` handler, which attempts an open-domain LLM completion with the logistics system prompt. If that also fails, a static fallback message is returned instructing the user to rephrase or use one of the documented command patterns.
+
+---
+
+## Backend
+
+The backend is a FastAPI application served by Uvicorn, structured as a single ASGI app with a versioned API prefix (`/api/v1`). All routes are registered through a central `_build_api_router()` function in `app/api/router.py` that imports each module lazily to avoid eager loading of optional ML dependencies at startup. CORS is configured via `CORSMiddleware` to allow the Next.js frontend to communicate with the API during development and production. Application lifecycle events — startup logging and shutdown signalling — are managed through a FastAPI `lifespan` context manager. Structured logging is provided by `structlog` and is configured at startup via `configure_logging()`.
+
+**REST APIs**
+
+All API modules are registered under the `/api/v1` prefix and grouped by functional domain. Each module defines its own `APIRouter` with a domain-specific tag. The full set of registered routers covers prediction, training, model management, experiment tracking, monitoring, drift detection, explainability, dataset, performance, and the AI assistant. A separate health router is registered at the root level outside the versioned prefix to support infrastructure health checks without authentication.
+
+**Model Registry**
+
+`GET /api/v1/models/registry` is served by `app/api/models.py` and returns the full contents of the model registry as a `ModelRegistryResponse`. Each entry in the response includes the model name, version, artifact path, evaluation metrics, creation timestamp, and status. The registry is backed by a shared `ModelRegistryEngine` instance instantiated at module load time, ensuring that all API requests within a process share the same in-memory registry state. The endpoint is used by the dashboard to populate the model comparison chart, training history timeline, and activity feed.
+
+**Monitoring**
+
+`GET /api/v1/monitoring` is served by `app/api/monitoring.py` and returns all prediction monitoring records captured by `MonitoringEngine`. Each record contains the timestamp, model name, prediction count, mean prediction, standard deviation, minimum, maximum, missing input count, and out-of-range input count. The monitoring engine is instantiated at module load time and accumulates records across the process lifetime. The endpoint feeds the dashboard's system health panel and the monitoring page.
+
+**Prediction API**
+
+`POST /api/v1/predict` is served by `app/api/prediction.py` and is the primary inference endpoint. It accepts a JSON body with a `features` key containing a flat dictionary of feature name-value pairs. The handler validates the payload, resolves the current Production XGBRegressor artifact from the registry, and passes the features through `PredictionPipelineEngine`, which applies the fitted sklearn preprocessing pipeline before calling the model. The response is a `PredictionResponse` containing the predicted value, model name, model version, and processing time in milliseconds. After each successful inference, `MonitoringEngine.record_predictions()` is called to persist summary statistics for the prediction batch. A two-level fallback is implemented: if the full pipeline fails, the handler attempts direct model inference on the raw feature values before raising an HTTP 500.
+
+**Explainability API**
+
+The explainability module at `app/api/explainability.py` exposes four endpoints. `GET /api/v1/explainability/latest` returns the complete explainability workspace payload for the active production model, including feature importance, local explanation, confidence score, SHAP summary, base64-encoded plot images, and raw metadata JSON. `GET /api/v1/explainability/feature-importance` returns the global importance rankings. `GET /api/v1/explainability/local` returns the local contribution scores and ranked feature impacts. `GET /api/v1/explainability/shap` returns the SHAP summary artifact. All four endpoints resolve the production model from the registry, locate the persisted artifact directory, and read the pre-generated JSON and PNG files. If artifacts are absent, `ExplainabilityArtifactGenerator` is invoked on-demand to generate them before the response is returned.
+
+**Dataset API**
+
+`GET /api/v1/dataset` is served by `app/api/dataset.py` and returns a `DatasetResponse` summarising the engineered training dataset. The handler reads `ml/data/features/engineered_training_dataset.csv` using pandas, computes the row count, column count, per-column missing value counts, and full feature name list, and returns them in a structured response. The target column is hardcoded to `actual_delivery_time_min`. If the dataset file is absent, the endpoint returns a zero-count response rather than raising an error, allowing the frontend to degrade gracefully.
+
+**AI Assistant API**
+
+`POST /api/v1/assistant/chat` is served by `app/api/assistant.py`. The handler accepts a JSON body with a `message` string and an optional `conversation_id` UUID. A shared `ETAIQAssistantService` instance is maintained via `lru_cache` so that conversation history persists across requests within the same process. The handler validates the message, checks LLM availability by inspecting the service's internal client state, and delegates to `service.handle_message()`, which returns an `AssistantResponse` containing the reply text and the conversation UUID. Validation errors return HTTP 400; internal errors return HTTP 500.
+
+---
+
+## Frontend
+
+The frontend is a Next.js 16 application using the App Router, React 19, and Tailwind CSS 4. All application pages are co-located under `frontend/src/app/(app)/` in a route group that shares a common layout. The layout provides the sidebar navigation, top bar, and page container. API calls from the frontend are proxied through Next.js rewrites to the FastAPI backend, keeping the backend URL out of the browser and avoiding CORS issues in production. Data fetching is performed client-side using a shared `fetchJson` utility that wraps the Fetch API with error normalisation.
+
+**Dashboard**
+
+The dashboard at `/dashboard` is the primary landing page. It fetches four backend endpoints in parallel on mount — `/api/v1/models`, `/api/v1/monitoring`, `/api/v1/models/registry`, and `/api/v1/health` — and renders eight KPI cards showing the production model name, MAE, RMSE, R², dataset size, training sample count, prediction latency, and model health status. A model comparison bar chart renders MAE, RMSE, and R² side by side for each registered model family. A training history line chart plots MAE over time across all registry entries. An activity timeline derives the five most recent registry events — promotions and archival actions — from the registry response. A system health panel shows the live status of the backend, monitoring service, registry, dataset, and model.
+
+**ETA Prediction page**
+
+The prediction workspace at `/predict-eta` (aliased from `/prediction`) fetches the production model metadata from `/api/v1/models` and dynamically constructs a feature input form from the `feature_names` array in the model registry entry. Each field is rendered as a numeric input, categorical select, or boolean checkbox depending on the feature type. On submission, the form validates all fields client-side, posts the feature dictionary to `POST /api/v1/predict`, and displays the predicted ETA in minutes alongside processing time, confidence score, model name, version, and prediction timestamp. After a successful prediction, the page fetches `/api/v1/explainability/latest` and renders an inline top-five feature contribution preview with proportional bar indicators. A link navigates to the full explainability workspace.
+
+**AI Assistant page**
+
+The AI assistant interface at `/ai-assistant` renders a full-height chat layout. When no messages are present, a welcome panel displays suggested prompts that the user can click to initiate a conversation. Once a conversation is active, messages are rendered in a scrollable container using `ChatMessage` components that distinguish user and assistant turns by role. A `TypingIndicator` is shown while the backend is processing. Each message is sent to `POST /api/v1/assistant/chat` with the message text and the current `conversation_id`. The conversation UUID returned in the first response is stored in component state and included in all subsequent requests to maintain session continuity. Errors are displayed inline below the message list.
+
+**Dataset Explorer**
+
+The dataset explorer at `/dataset-explorer` provides a navigable view of the processed training datasets and their source metadata. The page is backed by the `/api/v1/dataset` endpoint and surfaces the record count, feature count, target column, missing value summary, and full feature name list for the engineered training dataset. The page is designed to give operators a quick audit view of the data that underpins the production model without requiring direct filesystem access.
+
+**Explainability page**
+
+The explainability workspace at `/explainability` fetches the full explainability payload from `/api/v1/explainability/latest` and renders six summary metric cards (latest prediction value, confidence score, model name, version, training date, and performance metrics), a sortable feature contribution table with proportional bar indicators and direction labels, a local explanation panel with a natural language description, a global feature importance bar chart, a SHAP summary plot rendered from the base64-encoded PNG artifact, a waterfall chart rendered from the base64-encoded PNG artifact, and a collapsible raw metadata JSON viewer. The contribution table supports three sort keys (importance, contribution, feature name) and two sort directions, toggled via inline controls.
+
+**Model Registry page**
+
+The model registry page at `/model-registry` provides a centralised view of all registered model versions, their status lifecycle (Production / Archived), evaluation metrics, artifact paths, and creation timestamps. The page is backed by the `/api/v1/models/registry` endpoint and is designed to give ML engineers visibility into the full version history of trained models and the ability to verify which version is currently serving production traffic.
+
+**Monitoring page**
+
+The monitoring page at `/monitoring` surfaces the per-prediction monitoring records accumulated by `MonitoringEngine`. Each record shows the timestamp, model name, prediction count, mean prediction, standard deviation, minimum, and maximum values for that inference batch. The page is backed by the `/api/v1/monitoring` endpoint and is intended to support manual drift inspection and operational oversight between automated drift detection runs.
+
+**Responsive UI**
+
+The frontend is built with Tailwind CSS 4 utility classes and is fully responsive across desktop, tablet, and mobile viewports. Layout breakpoints use `lg:` and `xl:` prefixes to switch between single-column and multi-column grid arrangements. KPI cards reflow from a four-column grid on wide screens to a two-column grid on medium screens and a single column on small screens. The sidebar navigation collapses on mobile. All interactive elements — buttons, inputs, selects, and sort controls — meet minimum touch target sizes. Chart containers use Recharts `ResponsiveContainer` to fill their parent width at all viewport sizes.
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart TD
+    User(["👤 User / Operator"])
+
+    subgraph Frontend ["Next.js 16 Frontend"]
+        Dashboard["Dashboard"]
+        PredictPage["ETA Prediction"]
+        ExplainPage["Explainability"]
+        AssistantPage["AI Assistant"]
+        RegistryPage["Model Registry"]
+        MonitorPage["Monitoring"]
+        DatasetPage["Dataset Explorer"]
+    end
+
+    subgraph Backend ["FastAPI Backend  /api/v1"]
+        PredictAPI["POST /predict"]
+        ExplainAPI["GET /explainability"]
+        AssistantAPI["POST /assistant/chat"]
+        ModelsAPI["GET /models/registry"]
+        MonitorAPI["GET /monitoring"]
+        DatasetAPI["GET /dataset"]
+        HealthAPI["GET /health"]
+    end
+
+    subgraph MLCore ["ML Core  ml/"]
+        PredictionEngine["Prediction Pipeline\nPredictionPipelineEngine"]
+        ExplainEngine["Explainability Engine\nExplainabilityEngine"]
+        ArtifactGen["Artifact Generator\nExplainabilityArtifactGenerator"]
+        ModelRegistry["Model Registry\nModelRegistryEngine"]
+        MonitorEngine["Monitoring Engine\nMonitoringEngine"]
+        TrainingPipeline["Training Pipeline\nTrainingPipelineEngine"]
+        HyperSearch["Hyperparameter Search\nHyperparameterSearchEngine"]
+        CrossVal["Cross Validation\nCrossValidationEngine"]
+        FeaturePipeline["Feature Pipeline\nSklearnPreprocessor"]
+    end
+
+    subgraph DataLayer ["Data Layer"]
+        RawData["Raw Datasets\norders / restaurants / riders"]
+        CleaningPipeline["Cleaning Pipeline\nCleaningEngine + DecisionEngine"]
+        ValidationEngine["Validation Engine\n7 validators · quality score"]
+        ProcessedData["Processed Datasets\nml/data/processed/"]
+        FeatureStore["Feature Store\nml/data/features/"]
+        ModelArtifacts["Model Artifacts\nml/artifacts/"]
+    end
+
+    subgraph AIAssistant ["AI Assistant"]
+        IntentEngine["Intent Classifier\nkeyword matching"]
+        AssistantService["ETAIQAssistantService"]
+        LLMClient["OpenRouter LLM\nDeepSeek via OpenAI SDK"]
+        SessionStore["Session Store\nin-memory · UUID keyed"]
+    end
+
+    User -->|"browser"| Frontend
+
+    Dashboard -->|"parallel fetch"| ModelsAPI
+    Dashboard -->|"parallel fetch"| MonitorAPI
+    Dashboard -->|"parallel fetch"| HealthAPI
+    PredictPage -->|"POST features"| PredictAPI
+    PredictPage -->|"GET artifacts"| ExplainAPI
+    ExplainPage -->|"GET artifacts"| ExplainAPI
+    AssistantPage -->|"POST message"| AssistantAPI
+    RegistryPage -->|"GET registry"| ModelsAPI
+    MonitorPage -->|"GET records"| MonitorAPI
+    DatasetPage -->|"GET summary"| DatasetAPI
+
+    PredictAPI -->|"resolve production model"| ModelRegistry
+    PredictAPI -->|"run inference"| PredictionEngine
+    PredictAPI -->|"record stats"| MonitorEngine
+    ExplainAPI -->|"read artifacts"| ArtifactGen
+    ExplainAPI -->|"resolve model"| ModelRegistry
+    AssistantAPI -->|"delegate"| AssistantService
+    ModelsAPI -->|"list models"| ModelRegistry
+    MonitorAPI -->|"list records"| MonitorEngine
+    DatasetAPI -->|"read CSV"| FeatureStore
+
+    AssistantService -->|"classify intent"| IntentEngine
+    AssistantService -->|"query registry"| ModelRegistry
+    AssistantService -->|"call predict"| PredictionEngine
+    AssistantService -->|"explain result"| ExplainEngine
+    AssistantService -->|"generate narrative"| LLMClient
+    AssistantService -->|"persist session"| SessionStore
+
+    PredictionEngine -->|"load artifact"| ModelArtifacts
+    PredictionEngine -->|"apply preprocessing"| FeaturePipeline
+    ExplainEngine -->|"read importance"| ModelArtifacts
+    ArtifactGen -->|"write artifacts"| ModelArtifacts
+    ArtifactGen -->|"register paths"| ModelRegistry
+
+    TrainingPipeline -->|"fit models"| FeaturePipeline
+    TrainingPipeline -->|"evaluate"| CrossVal
+    TrainingPipeline -->|"tune"| HyperSearch
+    TrainingPipeline -->|"register"| ModelRegistry
+    TrainingPipeline -->|"generate"| ArtifactGen
+    TrainingPipeline -->|"read features"| FeatureStore
+
+    RawData -->|"assess"| CleaningPipeline
+    CleaningPipeline -->|"validate"| ValidationEngine
+    ValidationEngine -->|"write"| ProcessedData
+    ProcessedData -->|"engineer features"| FeatureStore
+    FeatureStore -->|"train"| TrainingPipeline
 ```
 
-The project uses `pytest` for automated verification of data pipeline behavior.
+The ETAIQ platform is organised as four cooperating layers: a browser-based frontend, a REST API backend, an ML core, and a data layer. Each layer has a single well-defined responsibility and communicates with adjacent layers through explicit interfaces.
+
+**Data layer**
+
+The data layer is the foundation of the platform. Raw CSV datasets for orders, restaurants, and riders are ingested by the Decision Engine, which performs a rule-based quality assessment and produces an approval manifest before any data is modified. The Cleaning Engine then applies deterministic repairs — duplicate removal, null imputation, GPS validation, timestamp normalisation, outlier filtering, and foreign key integrity enforcement — guided by the manifest. The Validation Engine runs seven independent validators against the cleaned output and produces a quantitative quality score. Datasets that pass validation are written to `ml/data/processed/`. The Feature Pipeline reads the processed datasets, joins them on their foreign keys, applies encoding and scaling, and writes the engineered training dataset to `ml/data/features/`. All artifacts produced by the data layer are versioned and auditable.
+
+**ML core**
+
+The ML core consumes the feature store and manages the full model lifecycle. `TrainingPipelineEngine` orchestrates multi-model training, cross-validation, hyperparameter search, and evaluation. The best-performing model is registered in `ModelRegistryEngine`, which maintains a versioned JSON registry with a Production / Archived status lifecycle. `ExplainabilityArtifactGenerator` generates global and local explainability artifacts — feature importance rankings, SHAP summaries, and plot images — and registers their paths back into the registry entry. At inference time, `PredictionPipelineEngine` loads the registered production artifact, applies the fitted `SklearnPreprocessor`, and returns a prediction. `MonitoringEngine` records per-prediction summary statistics after every inference call. `ExplainabilityEngine` generates local feature contribution scores for individual predictions on demand.
+
+**Backend**
+
+The FastAPI backend exposes the ML core through a versioned REST API. Each functional domain has its own `APIRouter` module registered lazily through a central router to avoid eager loading of ML dependencies. The prediction endpoint resolves the production model from the registry, runs inference through the prediction pipeline, records monitoring statistics, and returns the result. The explainability endpoints read pre-generated artifacts from disk, invoking the artifact generator on demand if artifacts are absent. The assistant endpoint maintains a shared `ETAIQAssistantService` instance via `lru_cache` so that conversation sessions persist across requests within the same process. All endpoints are protected by input validation, structured error responses, and `structlog`-based audit logging.
+
+**AI assistant**
+
+The AI assistant is a stateful service that sits between the backend API and the LLM. Each incoming message is classified by a keyword-matching intent engine into one of eight intent categories. The matched intent determines which handler is invoked and what context is assembled. Handlers query the model registry, invoke the prediction pipeline, call the explainability engine, and construct a structured response before the LLM is contacted. The LLM — DeepSeek accessed via the OpenRouter API using the OpenAI SDK — receives the structured context and the full conversation history and generates a plain-language narrative. If the LLM is unavailable, the structured response is returned directly. Session state is held in memory, keyed by a UUID assigned at the start of each conversation.
+
+**Frontend**
+
+The Next.js frontend communicates with the backend exclusively through Next.js API rewrites, which proxy all `/api/v1/*` requests to the FastAPI server. This keeps the backend origin out of the browser and eliminates CORS complexity in production. Pages fetch data client-side on mount using a shared `fetchJson` utility. The dashboard fetches four endpoints in parallel and renders KPI cards, charts, an activity timeline, and a system health panel from the combined response. The prediction workspace dynamically constructs its feature form from the model metadata returned by the registry endpoint. The explainability workspace reads the full artifact payload — including base64-encoded plot images — from a single endpoint and renders the complete explainability suite without additional requests. The AI assistant page maintains conversation state in React component state and threads the conversation UUID through every request to the backend session store.
 
 ---
 
-## Reports Generated
+## Project Structure
 
-ETAIQ generates structured artifacts to document pipeline behavior.
+```
+ETAIQ/
+├── backend/                    # FastAPI application and ML inference layer
+│   ├── app/
+│   │   ├── ai/                 # AI assistant service, intent engine, LLM client
+│   │   ├── api/                # APIRouter modules (prediction, explainability, assistant, …)
+│   │   ├── core/               # Settings, logging configuration, CORS setup
+│   │   ├── schemas/            # Pydantic request and response models
+│   │   └── main.py             # FastAPI app factory and lifespan handler
+│   ├── ml/                     # Symlinked or copied ML artifacts used at inference time
+│   ├── requirements/           # Layered requirements (base, dev, ml, prod)
+│   └── tests/                  # pytest test suite for API routes and assistant logic
+│
+├── frontend/                   # Next.js 16 dashboard application
+│   └── src/
+│       ├── app/(app)/          # Route group: all dashboard pages share a common layout
+│       │   ├── dashboard/      # Production dashboard with KPI cards and charts
+│       │   ├── predict-eta/    # ETA prediction workspace (alias of /prediction)
+│       │   ├── prediction/     # Dynamic feature form and live prediction result
+│       │   ├── explainability/ # Full explainability workspace with SHAP plots
+│       │   ├── ai-assistant/   # Conversational AI assistant interface
+│       │   ├── model-registry/ # Registered model catalog and version history
+│       │   ├── monitoring/     # Per-prediction monitoring records
+│       │   ├── dataset-explorer/ # Dataset summary and feature metadata viewer
+│       │   └── layout.tsx      # Shared sidebar, top bar, and page container
+│       ├── components/         # Reusable UI components (cards, charts, chat, forms)
+│       └── lib/                # fetchJson utility, shared types, dashboard helpers
+│
+├── ml/                         # Standalone ML pipeline (runs independently of the backend)
+│   ├── cleaning/               # CleaningEngine, DecisionEngine, audit logger, rollback
+│   ├── decision/               # Rule engine, approval manifest, confidence scoring
+│   ├── validation/             # Seven validators, quality score, validation report
+│   ├── features/               # Feature engineering, encoding, scaling, selection
+│   ├── training/               # Model training, registry, explainability, monitoring
+│   ├── intelligence/           # Dataset profiling, schema detection, leakage analysis
+│   ├── notebooks/              # EDA notebook (ETAIQ_EDA.ipynb)
+│   ├── data/
+│   │   ├── raw/                # Original unmodified source CSVs
+│   │   ├── processed/          # Cleaned and validated datasets
+│   │   ├── features/           # Engineered training dataset and selected feature list
+│   │   └── training/           # Model registry JSON and experiment records
+│   ├── artifacts/
+│   │   ├── explainability/     # Per-model explainability artifacts (JSON, PNG)
+│   │   ├── models/             # Trained model joblib files
+│   │   └── preprocessing/      # Fitted encoders and scaler
+│   └── reports/                # Cleaning reports, validation reports, model leaderboard
+│
+├── docker/                     # Dockerfile.backend, Dockerfile.frontend, docker-compose.yml
+├── docs/                       # Architecture, changelog, contributing guide, roadmap
+├── scripts/                    # Shell and Python helper scripts (dev, lint, test, setup)
+├── .github/workflows/          # GitHub Actions CI pipeline
+├── pyproject.toml              # Python project metadata, linting, and formatting config
+└── README.md                   # This document
+```
 
-- Validation Report: validator outcomes and score summary.
-- Cleaning Report: row-level change summaries and repair counts.
-- Timeline Report: sequence of cleaning actions.
-- Rollback Manifest: original values for restored records.
-- Quality Report: overall dataset health metrics.
+**`backend/`** contains the FastAPI application that serves the production REST API. The `app/api/` subdirectory holds one module per functional domain, each defining its own `APIRouter`. The `app/ai/` subdirectory contains the assistant service, intent classifier, and LLM client. The `app/schemas/` subdirectory defines all Pydantic request and response models. The backend has its own layered requirements files and a pytest test suite covering API routes, the assistant service, and the health endpoint.
 
-These reports make data preparation auditable and support stakeholder review.
+**`frontend/`** contains the Next.js 16 application. All pages live under `src/app/(app)/` in a route group that shares a common layout. Reusable components are organised under `src/components/` by domain (dashboard, assistant, UI primitives). The `src/lib/` directory contains the `fetchJson` utility, shared TypeScript types, and dashboard data helpers.
 
----
+**`ml/`** is the standalone ML pipeline that runs independently of the backend. It is structured as a set of Python packages, each with its own `__main__.py` entry point so that individual stages can be executed in isolation. The `cleaning/` and `decision/` packages implement the data quality pipeline. The `validation/` package implements the seven-validator quality scoring system. The `features/` package implements the feature engineering, encoding, scaling, and selection pipeline. The `training/` package implements model training, registry management, explainability artifact generation, and monitoring. The `intelligence/` package implements dataset profiling, schema detection, and leakage analysis. Processed data, trained model artifacts, and explainability artifacts are all written to versioned subdirectories under `ml/data/` and `ml/artifacts/`.
 
-## Current Workflow
+**`docker/`** contains the Dockerfile for the backend, the Dockerfile for the frontend, and a Docker Compose file that wires both services together with shared environment variables and volume mounts for the ML artifact directories.
 
-1. Copy `.env.example` to `.env`.
-2. Run `make setup` to provision dependencies.
-3. Execute the decision engine to build the approval manifest.
-4. Run the cleaning engine to apply transformations.
-5. Execute the validation engine to confirm dataset quality.
-6. Inspect reports, audit logs, and rollback manifests.
+**`docs/`** contains the architecture document, changelog, contributing guide, project specification, and roadmap. These documents are maintained alongside the codebase and updated as the platform evolves.
 
-This workflow enforces a clean dataset before any modeling or production readiness work.
+**`scripts/`** contains shell and Python helper scripts for common development tasks: starting the development servers, running the linter and formatter, executing the test suite, and running training smoke tests and demos.
+
+**`.github/workflows/`** contains the GitHub Actions CI pipeline, which runs linting, formatting checks, and the full test suite on every push and pull request.
 
 ---
 
 ## Installation
 
-### Prerequisites
+**Prerequisites**
 
-- Python 3.11+
-- Node.js 20+
-- Docker and Docker Compose (optional)
+- Python 3.11
+- Node.js 18 or later
+- npm
+- Docker and Docker Compose (for containerised deployment)
 
-### Setup
+**1. Clone the repository**
 
 ```bash
-cp .env.example .env
+git clone https://github.com/your-org/ETAIQ.git
+cd ETAIQ
+```
+
+**2. Bootstrap the Python environment**
+
+The setup script creates a root-level `.venv`, installs all Python dependencies from `backend/requirements/dev.txt`, and verifies core package imports.
+
+```bash
+chmod +x scripts/*.sh
+./scripts/setup.sh
+```
+
+Or using Make:
+
+```bash
 make setup
 ```
 
-This initializes the Python environment and installs required dependencies.
+**3. Install frontend dependencies**
+
+```bash
+cd frontend
+npm install
+cd ..
+```
 
 ---
 
-## Running the Project
+## Environment Variables
 
-### Backend
+**Backend**
 
-Start the backend:
+Copy the backend environment template and fill in your values:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `OPENROUTER_API_KEY` | Yes (for AI assistant) | — | API key for OpenRouter. The assistant falls back to structured responses if absent. |
+| `OPENROUTER_MODEL` | No | `deepseek/deepseek-chat-v3` | LLM model identifier passed to the OpenRouter API. |
+| `OPENROUTER_BASE_URL` | No | `https://openrouter.ai/api/v1` | OpenRouter API base URL. |
+| `JWT_SECRET` | Yes (production) | `change-me-to-a-random-secret` | Secret used for JWT signing. Change to a strong random value before deploying. |
+| `DATABASE_URL` | No | — | PostgreSQL connection string. Optional for local development. |
+| `MODEL_PATH` | No | `./ml/artifacts` | Path to the directory containing trained model artifacts. |
+| `LOG_LEVEL` | No | `INFO` | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
+| `ENVIRONMENT` | No | `development` | Runtime environment label. |
+| `DEBUG` | No | `false` | Enables FastAPI debug mode. |
+| `API_PREFIX` | No | `/api/v1` | URL prefix for all versioned API routes. |
+| `CORS_ORIGINS` | No | `http://localhost:3000` | Comma-separated list of allowed CORS origins. |
+
+**Frontend**
+
+The frontend reads a single environment variable from `frontend/.env.local`:
+
+```bash
+# frontend/.env.local
+NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000
+```
+
+For Docker Compose, the root `.env` is used instead. Copy the root template:
+
+```bash
+cp .env.example .env
+```
+
+Set `NEXT_PUBLIC_API_URL` to the backend URL accessible from the browser.
+
+---
+
+## Running Backend
+
+Activate the virtual environment and start the FastAPI development server from the `backend/` directory:
+
+```bash
+source .venv/bin/activate
+cd backend
+../.venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Or using Make from the project root:
 
 ```bash
 make backend
 ```
 
-Or manually:
+The API will be available at `http://localhost:8000`. Interactive API documentation is served at `http://localhost:8000/docs`.
+
+---
+
+## Running Frontend
+
+Start the Next.js development server:
 
 ```bash
-./scripts/setup.sh
-source .venv/bin/activate
-cd backend
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+cd frontend
+npm run dev
 ```
 
-Verify the service:
+Or using Make from the project root:
 
 ```bash
-curl http://localhost:8000/health
+make frontend
 ```
 
-### Frontend
+The dashboard will be available at `http://localhost:3000`.
 
-The `frontend/` workspace exists as a scaffold, but the UI is not implemented.
+To build for production:
 
-### Validation
+```bash
+cd frontend
+npm run build
+npm run start
+```
 
-Run the validation pipeline through the ML modules.
+---
 
-### Cleaning
+## Running Tests
 
-Run the cleaning pipeline through `ml/cleaning`.
+**Backend tests**
 
-### Testing
+Run the full pytest suite with coverage from the project root:
+
+```bash
+./scripts/test.sh
+```
+
+Or using Make:
 
 ```bash
 make test
 ```
 
-### Docker
+The script runs `pytest --cov=app --cov-report=term-missing -v` from the `backend/` directory using the root virtual environment. Additional pytest arguments can be passed directly:
 
 ```bash
-chmod +x scripts/*.sh
-./scripts/dev.sh
+./scripts/test.sh -k test_health
+```
+
+**Frontend tests**
+
+```bash
+cd frontend
+npm run test
+```
+
+The frontend test suite uses Vitest and Testing Library.
+
+**Linting and formatting**
+
+```bash
+# Lint backend (ruff, mypy) and frontend (eslint)
+./scripts/lint.sh
+
+# Auto-format backend Python source (isort, black, ruff --fix)
+./scripts/format.sh
+```
+
+Or using Make:
+
+```bash
+make lint
+make format
 ```
 
 ---
 
-## Outputs
+## Docker Deployment
 
-Current implementation produces the following outputs:
+The Docker Compose stack starts three services: `etaiq-backend` (FastAPI on port 8000), `etaiq-frontend` (Next.js on port 3000), and `etaiq-postgres` (PostgreSQL 16 on port 5432).
 
-- Processed datasets in `ml/data/processed`
-- Validation report artifacts
-- Cleaning report artifacts
-- Audit logs for cleaning operations
-- Rollback manifests
-- Quality summary artifacts
+**Start the full stack**
 
-These outputs are designed for review and for future model-building stages.
+```bash
+./scripts/dev.sh
+```
 
----
+Or using Make:
 
-## Engineering Highlights
+```bash
+make docker
+```
 
-- Production-style modular architecture with separate decision, cleaning, and validation stages.
-- Rule-based decision workflow for explicit approval logic.
-- Independent cleaning engine with audit and rollback support.
-- Data integrity-first validation pipeline.
-- Current quality score of **100 / 100** on implemented validation checks.
-- Structured reports that support governance and reproducibility.
+Or directly with Docker Compose:
 
-These features demonstrate engineering discipline and make the repository suitable for technical review.
+```bash
+docker compose -f docker/docker-compose.yml up --build
+```
 
----
+**Stop the stack**
 
-## Future Roadmap
+```bash
+./scripts/stop.sh
+```
 
-The following areas are planned but not yet implemented:
+**Environment files for Docker**
 
-- Exploratory Data Analysis (EDA)
-- Feature Engineering
-- Machine Learning
-- Model Explainability (SHAP/LIME)
-- Prediction API
-- AI Assistant
-- Frontend Application
-- Deployment Automation
-- CI/CD Integration
+The backend container reads `backend/.env`. The frontend container reads the root `.env`. Ensure both files exist before starting the stack:
 
-Each roadmap item is intentionally listed as future work.
+```bash
+cp backend/.env.example backend/.env
+cp .env.example .env
+```
 
----
+Edit both files to set `OPENROUTER_API_KEY` and any other required values before starting the containers.
 
-## Assignment Deliverables
+**Services and ports**
 
-- [x] GitHub Repository
-- [x] README
-- [ ] EDA
-- [ ] Architecture Diagram (extended)
-- [ ] Backend Prediction API
-- [ ] Frontend
-- [ ] Predictive Model
-- [ ] Deployment
-- [ ] Demo Video
+| Service | Container | Port |
+|---|---|---|
+| FastAPI backend | `etaiq-backend` | `8000` |
+| Next.js frontend | `etaiq-frontend` | `3000` |
+| PostgreSQL | `etaiq-postgres` | `5432` |
+
+The backend container depends on the PostgreSQL health check passing before it starts. The frontend container depends on the backend container being up.
 
 ---
 
-## Contributing
+## API Documentation
 
-Contributions are welcome via issues and pull requests. Please follow these guidelines:
+FastAPI generates interactive API documentation automatically from the route definitions and Pydantic schemas.
 
-- Open an issue before making large changes.
-- Keep PRs focused and incremental.
-- Add tests for new validation and cleaning logic.
-- Update documentation when pipeline behavior changes.
+| Interface | URL | Description |
+|---|---|---|
+| Swagger UI | `http://localhost:8000/docs` | Interactive endpoint explorer with request/response schemas and a live try-it-out console |
+| ReDoc | `http://localhost:8000/redoc` | Alternative read-only documentation with a clean two-panel layout |
+| OpenAPI JSON | `http://localhost:8000/openapi.json` | Raw OpenAPI 3.1 schema for client generation or import into API tools |
 
----
+**Core endpoints**
 
-## License
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/health` | Infrastructure health check — returns backend status and model availability |
+| `POST` | `/api/v1/predict` | Run a prediction — accepts a `features` dictionary, returns predicted ETA in minutes |
+| `GET` | `/api/v1/models` | Production model metadata — name, version, feature names, metrics, and registry status |
+| `GET` | `/api/v1/models/registry` | Full model registry — all registered versions with metrics and lifecycle status |
+| `GET` | `/api/v1/explainability/latest` | Full explainability payload — feature importance, local explanation, SHAP plots, metadata |
+| `GET` | `/api/v1/explainability/feature-importance` | Global feature importance rankings for the production model |
+| `GET` | `/api/v1/explainability/local` | Local feature contribution scores for the most recent prediction |
+| `GET` | `/api/v1/explainability/shap` | SHAP summary artifact for the production model |
+| `GET` | `/api/v1/monitoring` | All per-prediction monitoring records accumulated since server start |
+| `GET` | `/api/v1/dataset` | Engineered training dataset summary — row count, feature count, missing values |
+| `POST` | `/api/v1/assistant/chat` | AI assistant — accepts a `message` and optional `conversation_id`, returns a reply |
 
-Proprietary. All rights reserved.
+**Example prediction request**
 
-This project does not include an open-source license file.
+```bash
+curl -X POST http://localhost:8000/api/v1/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "features": {
+      "drop_lat": 12.9716,
+      "drop_lon": 77.5946,
+      "order_size": 3,
+      "order_value": 450.0,
+      "lat": 12.9352,
+      "lon": 77.6245,
+      "avg_rating": 4.2,
+      "prep_capacity": 10,
+      "id_rider": 42,
+      "lat_rider": 12.9500,
+      "lon_rider": 77.6100,
+      "completed_orders": 312,
+      "shift_hours": 3.5,
+      "current_load": 1
+    }
+  }'
+```
 
----
+**Example assistant request**
 
-## Acknowledgements
-
-- FastAPI for backend scaffolding.
-- pandas and NumPy for data processing.
-- The ETAIQ project team for design and architecture guidance.
-- `docs/` for project planning and system documentation.
+```bash
+curl -X POST http://localhost:8000/api/v1/assistant/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is the most important feature for ETA prediction?"}'
+```
