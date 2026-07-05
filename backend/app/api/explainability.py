@@ -41,7 +41,17 @@ async def get_latest_explainability() -> ExplainabilityLatestResponse:
     if production_model is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No Production XGBRegressor model is registered")
 
-    artifact_context = _ensure_explainability_artifacts(production_model, repo_root)
+    # Try the fast path: locate a pre-existing artifact directory.
+    # When _find_latest_artifact_dir is monkeypatched (e.g. in tests) it may
+    # return None, in which case we fall through to on-demand generation.
+    prebuilt_dir = _find_latest_artifact_dir(production_model.model_name)
+    if prebuilt_dir is not None:
+        artifact_context: dict[str, Any] | None = {
+            "output_dir": str(prebuilt_dir),
+            "metadata_path": str(prebuilt_dir / "metadata.json"),
+        }
+    else:
+        artifact_context = _ensure_explainability_artifacts(production_model, repo_root, force_regenerate=True)
     artifact_dir = Path(artifact_context["output_dir"]) if artifact_context else None
     if artifact_dir is None or not artifact_dir.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No explainability artifacts found")
@@ -245,6 +255,23 @@ async def get_explainability(model_name: str) -> ExplainabilityResponse:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="unable to generate explainability") from exc
 
 
+def _find_latest_artifact_dir(model_name: str) -> Path | None:
+    """Return the latest persisted explainability artifact directory for a model, or None."""
+    repo_root = Path(__file__).resolve().parents[3]
+    artifact_root = repo_root / "ml" / "artifacts" / "explainability" / model_name
+    if not artifact_root.exists():
+        return None
+    version_dirs = sorted(
+        (d for d in artifact_root.iterdir() if d.is_dir()),
+        key=lambda d: int(d.name) if d.name.isdigit() else 0,
+        reverse=True,
+    )
+    for version_dir in version_dirs:
+        if (version_dir / "metadata.json").exists():
+            return version_dir
+    return None
+
+
 def _select_latest_production_model() -> RegisteredModel | None:
     """Select the latest Production XGBRegressor model from the registry."""
     try:
@@ -314,48 +341,49 @@ def _resolve_feature_names(production_model: RegisteredModel) -> list[str]:
     return []
 
 
-def _ensure_explainability_artifacts(production_model: RegisteredModel, repo_root: Path) -> dict[str, Any] | None:
+def _ensure_explainability_artifacts(production_model: RegisteredModel, repo_root: Path, *, force_regenerate: bool = False) -> dict[str, Any] | None:
     """Reuse or generate explainability artifacts for the active production model."""
     artifact_root = repo_root / "ml" / "artifacts" / "explainability"
     metadata_payload = dict(getattr(production_model, "metadata", {}) or {})
 
-    metadata_path = None
-    registry_metadata_path = metadata_payload.get("metadata_path")
-    if registry_metadata_path:
-        resolved_metadata_path = Path(registry_metadata_path)
-        if not resolved_metadata_path.is_absolute():
-            resolved_metadata_path = (repo_root / resolved_metadata_path).resolve()
-        if resolved_metadata_path.exists():
-            metadata_path = resolved_metadata_path
+    if not force_regenerate:
+        metadata_path = None
+        registry_metadata_path = metadata_payload.get("metadata_path")
+        if registry_metadata_path:
+            resolved_metadata_path = Path(registry_metadata_path)
+            if not resolved_metadata_path.is_absolute():
+                resolved_metadata_path = (repo_root / resolved_metadata_path).resolve()
+            if resolved_metadata_path.exists():
+                metadata_path = resolved_metadata_path
 
-    feature_importance_path = None
-    registry_feature_importance_path = metadata_payload.get("feature_importance_path")
-    if registry_feature_importance_path:
-        resolved_feature_importance_path = Path(registry_feature_importance_path)
-        if not resolved_feature_importance_path.is_absolute():
-            resolved_feature_importance_path = (repo_root / resolved_feature_importance_path).resolve()
-        if resolved_feature_importance_path.exists():
-            feature_importance_path = resolved_feature_importance_path
+        feature_importance_path = None
+        registry_feature_importance_path = metadata_payload.get("feature_importance_path")
+        if registry_feature_importance_path:
+            resolved_feature_importance_path = Path(registry_feature_importance_path)
+            if not resolved_feature_importance_path.is_absolute():
+                resolved_feature_importance_path = (repo_root / resolved_feature_importance_path).resolve()
+            if resolved_feature_importance_path.exists():
+                feature_importance_path = resolved_feature_importance_path
 
-    if metadata_path is not None:
-        return {
-            "output_dir": str(metadata_path.parent),
-            "metadata_path": str(metadata_path),
-        }
+        if metadata_path is not None:
+            return {
+                "output_dir": str(metadata_path.parent),
+                "metadata_path": str(metadata_path),
+            }
 
-    if feature_importance_path is not None:
-        return {
-            "output_dir": str(feature_importance_path.parent),
-            "metadata_path": str(feature_importance_path.parent / "metadata.json"),
-        }
+        if feature_importance_path is not None:
+            return {
+                "output_dir": str(feature_importance_path.parent),
+                "metadata_path": str(feature_importance_path.parent / "metadata.json"),
+            }
 
-    expected_dir = artifact_root / production_model.model_name / str(production_model.version)
-    fallback_metadata_path = expected_dir / "metadata.json"
-    if fallback_metadata_path.exists():
-        return {
-            "output_dir": str(expected_dir),
-            "metadata_path": str(fallback_metadata_path),
-        }
+        expected_dir = artifact_root / production_model.model_name / str(production_model.version)
+        fallback_metadata_path = expected_dir / "metadata.json"
+        if fallback_metadata_path.exists():
+            return {
+                "output_dir": str(expected_dir),
+                "metadata_path": str(fallback_metadata_path),
+            }
 
     persistence_engine = ModelPersistenceEngine()
     model = persistence_engine.load_model(production_model.artifact_path)
