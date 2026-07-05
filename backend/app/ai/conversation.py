@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from enum import Enum
 from typing import Any
-from uuid import uuid4
+
+from app.ai.memory import ConversationMemory
 
 
 class ConversationState(str, Enum):
@@ -17,28 +17,28 @@ class ConversationState(str, Enum):
 
 
 class ConversationManager:
-    """Maintain recent conversation turns and per-conversation state in memory."""
+    """Maintain recent conversation turns and per-conversation state in memory.
 
-    def __init__(self, history_limit: int = 8) -> None:
-        self.history_limit = history_limit
-        self._conversations: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    History storage is delegated to :class:`ConversationMemory` so that the
+    trimming logic and the public memory interface live in one place.
+    """
+
+    def __init__(self, history_limit: int = 20) -> None:
+        self._memory = ConversationMemory(max_messages=history_limit)
         self._states: dict[str, ConversationState] = {}
         self._prediction_data: dict[str, dict[str, Any]] = {}
 
     def create_conversation_id(self) -> str:
-        return str(uuid4())
+        return ConversationMemory.new_session_id()
 
     def add_turn(self, conversation_id: str, *, role: str, content: str) -> None:
-        history = self._conversations[conversation_id]
-        history.append({"role": role, "content": content})
-        if len(history) > self.history_limit:
-            del history[: len(history) - self.history_limit]
+        if role == "user":
+            self._memory.add_user_message(conversation_id, content)
+        else:
+            self._memory.add_assistant_message(conversation_id, content)
 
     def get_history(self, conversation_id: str) -> list[dict[str, str]]:
-        return [
-            {"role": str(turn["role"]), "content": str(turn["content"])}
-            for turn in self._conversations.get(conversation_id, [])
-        ]
+        return self._memory.get_history(conversation_id)
 
     def get_state(self, conversation_id: str) -> ConversationState:
         return self._states.get(conversation_id, ConversationState.NORMAL_CHAT)

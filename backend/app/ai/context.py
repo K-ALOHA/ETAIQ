@@ -22,6 +22,7 @@ REPO_ROOT = _find_repo_root()
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from app.core.artifact_resolver import resolve_artifact_path
 from app.core.config import get_settings
 from app.core.logging import get_logger
 
@@ -347,7 +348,7 @@ class ContextBuilder:
             from ml.training.explainability import ExplainabilityEngine
             from ml.training.persistence import ModelPersistenceEngine
 
-            model = ModelPersistenceEngine().load_model(artifact_path)
+            model = ModelPersistenceEngine().load_model(resolve_artifact_path(artifact_path))
             feature_names = self._get_feature_names_for_production_model(production_context)
             if not feature_names:
                 return {"available": False, "summary": "No feature metadata is available for this model.", "top_features": [], "confidence": None}
@@ -414,3 +415,120 @@ class ContextBuilder:
         if not hasattr(explanation, "feature_importance"):
             return "moderate"
         return "high"
+
+
+def _fmt(label: str, value: Any) -> str:
+    """Return 'Label: value' only when value is non-empty/non-None."""
+    if value is None or value == "" or value == [] or value == {}:
+        return ""
+    return f"{label}: {value}"
+
+
+def _section(title: str, lines: list[str]) -> str:
+    """Return a labelled section block, or empty string if all lines are empty."""
+    body = "\n".join(line for line in lines if line)
+    if not body:
+        return ""
+    bar = "-" * len(title)
+    return f"{title}\n{bar}\n{body}"
+
+
+class AIContextBuilder:
+    """
+    Assembles a concise plain-text application context string sent to OpenRouter.
+
+    Replaces the previous large JSON dump with a structured, token-efficient
+    representation.  Only non-null, non-empty fields are included.  Archived
+    models, historical experiments, and repeated metadata are omitted.
+
+    The public interface (build()) is unchanged so ChatService requires no edits.
+    """
+
+    def __init__(self, *, builder: ContextBuilder | None = None) -> None:
+        self._builder = builder or ContextBuilder()
+
+    def build(
+        self,
+        *,
+        prediction_inputs: dict[str, Any] | None = None,
+        prediction_result: dict[str, Any] | None = None,
+    ) -> str:  # now returns str instead of dict
+        """Return a compact plain-text context block ready for injection into the system message."""
+        b = self._builder
+        sections: list[str] = []
+
+        # --- Current Model ---------------------------------------------------
+        model = b.get_production_model_context()
+        sections.append(_section("Current Model", [
+            _fmt("Production Model", model.get("name")),
+            _fmt("Version", model.get("version")),
+            _fmt("Status", model.get("status")),
+            _fmt("Created", model.get("created_at")),
+        ]))
+
+        # --- Performance -----------------------------------------------------
+        metrics: dict[str, Any] = model.get("metrics") or {}
+        sections.append(_section("Performance", [
+            _fmt("MAE", metrics.get("mae")),
+            _fmt("RMSE", metrics.get("rmse")),
+            _fmt("MAPE", metrics.get("mape")),
+            _fmt("R2", metrics.get("r2")),
+            _fmt("Training time (s)", metrics.get("training_time")),
+            _fmt("Inference time (s)", metrics.get("inference_time")),
+        ]))
+
+        # --- Dataset ---------------------------------------------------------
+        dataset = b.get_dataset_context()
+        feature_names: list[str] = dataset.get("feature_names") or []
+        # Exclude target from feature count
+        target = dataset.get("target_column") or "actual_delivery_time_min"
+        feature_count = len([f for f in feature_names if f != target])
+        sections.append(_section("Dataset", [
+            _fmt("Total samples", dataset.get("record_count") or None),
+            _fmt("Feature count", feature_count or None),
+            _fmt("Target column", target),
+        ]))
+
+        # --- Top Features (only if explainability data exists) ---------------
+        expl = b.get_explainability_context()
+        top_features: list[dict[str, Any]] = expl.get("top_features") or []
+        if expl.get("available") and top_features:
+            feat_lines = [
+                f"  {i + 1}. {f['feature_name']} ({f['importance']:.4f})"
+                for i, f in enumerate(top_features)
+                if f.get("feature_name") and f.get("importance") is not None
+            ]
+            sections.append(_section("Top Features", feat_lines))
+
+        # --- Latest Prediction (only if one exists) --------------------------
+        if prediction_result:
+            pred_lines = [
+                _fmt("Predicted ETA (min)", prediction_result.get("predicted_eta_minutes")),
+                _fmt("Mean prediction (min)", prediction_result.get("mean_prediction_minutes")),
+                _fmt("Model", prediction_result.get("model_name")),
+                _fmt("Version", prediction_result.get("model_version")),
+            ]
+            if prediction_inputs:
+                pred_lines.append(_fmt("Input features", prediction_inputs))
+            sections.append(_section("Latest Prediction", pred_lines))
+        else:
+            latest = b.get_latest_prediction_context()
+            if latest.get("status") == "available":
+                summary = latest.get("summary") or {}
+                sections.append(_section("Latest Prediction", [
+                    _fmt("Mean ETA (min)", summary.get("mean_prediction")),
+                    _fmt("Prediction count", summary.get("prediction_count")),
+                    _fmt("Model", summary.get("model_name")),
+                    _fmt("Timestamp", summary.get("timestamp")),
+                ]))
+
+        # --- Monitoring ------------------------------------------------------
+        mon = b.get_monitoring_context()
+        sections.append(_section("Monitoring", [
+            _fmt("Prediction records", mon.get("record_count") or None),
+            _fmt("Monitoring status", mon.get("monitoring_status")),
+            _fmt("Backend status", mon.get("backend_status")),
+            _fmt("Latest latency (ms)", mon.get("latency_ms")),
+        ]))
+
+        return "\n\n".join(s for s in sections if s)

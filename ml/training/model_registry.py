@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .config import DEFAULT_TRAINING_CONFIG
 from .logging_config import TrainingLogger
 
 
@@ -197,25 +198,29 @@ class ModelRegistryEngine:
             metadata=dict(record.metadata),
         )
 
+    def _resolve_artifact_path(self, stored_path: Path) -> Path:
+        """Rebuild the artifact path from the configured models directory.
+
+        Uses only the filename from *stored_path* so that host-absolute paths
+        recorded at training time (e.g. /Users/kaloha/ETAIQ/ml/...) resolve
+        correctly inside Docker (/app/ml/...) or any other environment.
+        """
+        # The models dir is set from DEFAULT_MODELS_DIR which is anchored to
+        # __file__ at import time, so it is always correct for the current env.
+        return DEFAULT_TRAINING_CONFIG.models_dir / stored_path.name
+
     def _persist_registration(self, record: RegisteredModel) -> None:
         """Persist registration metadata to disk."""
         output_path = self._storage_dir / f"{record.model_name}_v{record.version}_registry.json"
-        
-        # Store relative path for portability across machines/environments
-        try:
-            relative_path = record.artifact_path.relative_to(self._storage_dir.parent.parent.parent)
-        except ValueError:
-            # Fallback: use relative path from registry directory
-            try:
-                relative_path = record.artifact_path.relative_to(self._storage_dir)
-            except ValueError:
-                # Last resort: just store the artifact name and expect it in same directory
-                relative_path = Path(record.artifact_path.name)
-        
+
+        # Store only the filename so the registry is portable across environments
+        # (host macOS paths vs Docker container paths).
+        stored_path = record.artifact_path.name
+
         payload = {
             "model_name": record.model_name,
             "version": record.version,
-            "artifact_path": str(relative_path),
+            "artifact_path": stored_path,
             "metrics": record.metrics,
             "created_at": record.created_at,
             "status": record.status,
@@ -244,15 +249,10 @@ class ModelRegistryEngine:
                 self._logger.warning("Skipping malformed registry entry", file=str(registry_file))
                 continue
 
-            # Resolve the artifact path - it may be relative or absolute
-            artifact_path = Path(artifact_path_str)
-            if not artifact_path.is_absolute():
-                # If relative, resolve it relative to the registry directory's parent structure
-                # Assumes standard structure: ml/data/training/model_registry/ -> ml/artifacts/models/
-                artifact_path = (self._storage_dir.parent.parent / artifact_path).resolve()
-                if not artifact_path.exists():
-                    # Try relative to registry directory directly
-                    artifact_path = (self._storage_dir / artifact_path_str).resolve()
+            # Always resolve using only the filename so that host-absolute paths
+            # stored in the registry (e.g. /Users/kaloha/...) work correctly
+            # inside Docker where the mount point is /app/ml.
+            artifact_path = self._resolve_artifact_path(Path(artifact_path_str))
             
             registered_model = RegisteredModel(
                 model_name=model_name,

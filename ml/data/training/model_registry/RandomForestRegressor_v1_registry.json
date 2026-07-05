@@ -1,7 +1,7 @@
 {
   "model_name": "RandomForestRegressor",
   "version": 1,
-  "artifact_path": "/Users/kaloha/ETAIQ/ml/artifacts/models/RandomForestRegressor_v1.joblib",
+  "artifact_path": "RandomForestRegressor_v1.joblib",
   "metrics": {
     "mae": 5.6299850000000005
   },

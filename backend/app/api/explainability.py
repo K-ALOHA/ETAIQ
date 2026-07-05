@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import base64
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.models import registry_engine
+from app.core.artifact_resolver import resolve_artifact_path
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.schemas.ml_management import ExplainabilityLatestResponse, ExplainabilityResponse
@@ -41,9 +40,6 @@ async def get_latest_explainability() -> ExplainabilityLatestResponse:
     if production_model is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No Production XGBRegressor model is registered")
 
-    # Try the fast path: locate a pre-existing artifact directory.
-    # When _find_latest_artifact_dir is monkeypatched (e.g. in tests) it may
-    # return None, in which case we fall through to on-demand generation.
     prebuilt_dir = _find_latest_artifact_dir(production_model.model_name)
     if prebuilt_dir is not None:
         artifact_context: dict[str, Any] | None = {
@@ -77,6 +73,9 @@ async def get_latest_explainability() -> ExplainabilityLatestResponse:
         else local_payload.get("confidence_score", 0.0)
     )
 
+    summary_plot = _read_image_data(summary_plot_path)
+    waterfall_plot = _read_image_data(waterfall_plot_path)
+
     return ExplainabilityLatestResponse(
         model_name=str(feature_payload.get("model_name") or metadata_payload.get("model_name") or production_model.model_name),
         version=str(metadata_payload.get("version") or production_model.version),
@@ -88,11 +87,11 @@ async def get_latest_explainability() -> ExplainabilityLatestResponse:
         ranked_features=feature_payload.get("ranked_features") or [],
         local_explanation=local_payload.get("local_explanation") or [],
         natural_language_explanation=_build_natural_language_explanation(local_payload),
-        summary_plot=_read_image_data(summary_plot_path),
-        waterfall_plot=_read_image_data(waterfall_plot_path),
+        summary_plot=summary_plot,
+        waterfall_plot=waterfall_plot,
         plots={
-            "summary_plot": _read_image_data(summary_plot_path),
-            "waterfall_plot": _read_image_data(waterfall_plot_path),
+            "summary_plot": summary_plot,
+            "waterfall_plot": waterfall_plot,
         },
         metadata_json=json.dumps(metadata_payload, indent=2),
         metadata=metadata_payload,
@@ -177,26 +176,24 @@ async def get_shap_explanation():
 
     production_model = _select_latest_production_model()
     if production_model is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No Production XGBRegressor model is registered")
+        return {"available": False, "message": "Explainability artifacts not found."}
 
-    artifact_context = _ensure_explainability_artifacts(production_model, Path(__file__).resolve().parents[3])
-    artifact_dir = Path(artifact_context["output_dir"]) if artifact_context else None
+    artifact_dir = _find_latest_artifact_dir(production_model.model_name)
     if artifact_dir is None or not artifact_dir.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No explainability artifacts found")
+        return {"available": False, "message": "Explainability artifacts not found."}
 
     shap_path = artifact_dir / "shap_summary.json"
-    shap_payload = _read_json_file(shap_path) or {}
-    feature_importance_path = artifact_dir / "feature_importance.json"
-    feature_payload = _read_json_file(feature_importance_path) or {}
+    shap_payload = _read_json_file(shap_path)
+    if not shap_payload:
+        return {"available": False, "message": "Explainability artifacts not found."}
 
     return {
+        "available": True,
         "model_name": shap_payload.get("model_name", production_model.model_name),
         "version": production_model.version,
         "method": shap_payload.get("method", "persisted_artifact"),
-        "summary": shap_payload.get("summary", []),
         "generated_at": shap_payload.get("generated_at"),
-        "feature_importance": feature_payload.get("feature_importance", {}),
-        "ranked_features": feature_payload.get("ranked_features", []),
+        "summary": shap_payload.get("summary", []),
     }
 
 
@@ -232,7 +229,7 @@ async def get_explainability(model_name: str) -> ExplainabilityResponse:
                 sample_count=len(feature_payload.get("feature_importance") or {}),
             )
 
-        model = ModelPersistenceEngine().load_model(production_model.artifact_path)
+        model = ModelPersistenceEngine().load_model(resolve_artifact_path(production_model.artifact_path))
         engine = ExplainabilityEngine()
         feature_names = _resolve_feature_names(production_model)
         result = engine.explain_model(model, model_name, feature_names or ["feature_0"])
@@ -291,10 +288,11 @@ def _read_json_file(file_path: Path) -> dict[str, Any] | None:
 
 
 def _read_image_data(file_path: Path) -> str | None:
-    """Read an image file and return it as a base64-encoded string, or None if it doesn't exist or can't be read."""
+    """Read an image file and return it as a base64 data URI, or None if unavailable."""
     try:
-        if file_path.exists():
-            return base64.b64encode(file_path.read_bytes()).decode("utf-8")
+        if file_path.exists() and file_path.stat().st_size > 0:
+            encoded = base64.b64encode(file_path.read_bytes()).decode("utf-8")
+            return f"data:image/png;base64,{encoded}"
     except Exception:
         pass
     return None
@@ -306,24 +304,23 @@ def _build_natural_language_explanation(local_payload: dict[str, Any]) -> str:
         local_explanation = local_payload.get("local_explanation", [])
         if not local_explanation:
             return "No local explanation available."
-        
+
         ranked = sorted(
             local_explanation,
             key=lambda x: abs(float(x.get("contribution_score", 0))),
-            reverse=True
+            reverse=True,
         )[:3]
-        
+
         if not ranked:
             return "No significant feature contributions found."
-        
-        feature_names = [item.get("feature_name", "").replace("_", " ") for item in ranked]
-        contributions = [float(item.get("contribution_score", 0)) for item in ranked]
-        
+
         parts = []
-        for name, contrib in zip(feature_names, contributions):
+        for item in ranked:
+            name = item.get("feature_name", "").replace("_", " ")
+            contrib = float(item.get("contribution_score", 0))
             direction = "increasing" if contrib > 0 else "decreasing"
             parts.append(f"{name} ({direction})")
-        
+
         return f"The prediction is primarily influenced by {', and '.join(parts)}."
     except Exception:
         return "Failed to generate natural language explanation."
@@ -386,9 +383,6 @@ def _ensure_explainability_artifacts(production_model: RegisteredModel, repo_roo
             }
 
     persistence_engine = ModelPersistenceEngine()
-    model = persistence_engine.load_model(production_model.artifact_path)
+    model = persistence_engine.load_model(resolve_artifact_path(production_model.artifact_path))
     generator = ExplainabilityArtifactGenerator(artifacts_root=artifact_root)
-    return generator.generate_for_model(
-        model,
-        production_model,
-    )
+    return generator.generate_for_model(model, production_model)

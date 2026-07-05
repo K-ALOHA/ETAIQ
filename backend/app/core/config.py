@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     openrouter_model: str = Field(default="deepseek/deepseek-chat-v3", description="OpenRouter model name")
     openrouter_base_url: str = Field(default="https://openrouter.ai/api/v1", description="OpenRouter API base URL")
     model_path: str = Field(default="./ml/artifacts", description="Path to ML model artifacts")
+    model_artifact_dir: str = Field(default="./ml/artifacts/models", description="Directory containing .joblib model files")
     log_level: str = Field(default="INFO", description="Logging verbosity level")
 
     cors_origins: list[str] = Field(

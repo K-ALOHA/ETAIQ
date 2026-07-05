@@ -1,7 +1,7 @@
 {
   "model_name": "GradientBoostingRegressor",
   "version": 1,
-  "artifact_path": "/Users/kaloha/ETAIQ/ml/artifacts/models/GradientBoostingRegressor_v1.joblib",
+  "artifact_path": "GradientBoostingRegressor_v1.joblib",
   "metrics": {
     "mae": 6.144549367376469
   },

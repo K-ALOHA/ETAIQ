@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpDown, AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -335,10 +334,11 @@ export default function ExplainabilityPage() {
             <p className="mt-1 text-sm text-slate-400">Visual summary of model-driven attribution.</p>
           </div>
           {data.summary_plot ? (
-            <Image src={data.summary_plot} alt="SHAP summary plot" width={1200} height={800} unoptimized className="h-72 w-full rounded-2xl border border-white/10 object-contain" />
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={data.summary_plot} alt="SHAP summary plot" className="h-72 w-full rounded-2xl border border-white/10 object-contain" />
           ) : (
             <div className="flex h-72 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-slate-900/70 text-sm text-slate-400">
-              SHAP summary unavailable.
+              SHAP image artifact not available.
             </div>
           )}
         </Card>
@@ -351,10 +351,11 @@ export default function ExplainabilityPage() {
             <p className="mt-1 text-sm text-slate-400">Local contribution breakdown for the latest prediction.</p>
           </div>
           {data.waterfall_plot ? (
-            <Image src={data.waterfall_plot} alt="Waterfall contribution chart" width={1200} height={800} unoptimized className="h-72 w-full rounded-2xl border border-white/10 object-contain" />
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={data.waterfall_plot} alt="Waterfall contribution chart" className="h-72 w-full rounded-2xl border border-white/10 object-contain" />
           ) : (
             <div className="flex h-72 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-slate-900/70 text-center text-sm leading-6 text-slate-400">
-              Waterfall plot is not available yet for this prediction.
+              SHAP image artifact not available.
             </div>
           )}
         </Card>

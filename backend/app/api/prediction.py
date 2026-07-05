@@ -12,6 +12,7 @@ import numpy as np
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.api.models import registry_engine
+from app.core.artifact_resolver import resolve_artifact_path
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.schemas.prediction import HealthResponse, ModelInfoResponse, PredictionRequest, PredictionResponse
@@ -38,7 +39,7 @@ def _resolve_latest_artifact() -> Path:
 def _resolve_production_model() -> Path:
     """Resolve the latest Production XGBRegressor artifact from the model registry."""
     selected = registry_engine.select_production_model("XGBRegressor")
-    model_path = selected.artifact_path
+    model_path = resolve_artifact_path(selected.artifact_path)
 
     if not model_path.exists():
         raise FileNotFoundError(f"Production artifact is missing: {model_path}")
@@ -109,7 +110,7 @@ async def predict(request: Request) -> PredictionResponse:
     try:
         start_time = time.perf_counter()
         production_model = registry_engine.select_production_model("XGBRegressor")
-        model_path = production_model.artifact_path
+        model_path = resolve_artifact_path(production_model.artifact_path)
         if not model_path.exists():
             raise FileNotFoundError(f"Production artifact is missing: {model_path}")
 
@@ -227,7 +228,7 @@ async def list_models() -> ModelInfoResponse:
     model_payloads = []
     for model in registered_models:
         metadata = dict(model.metadata or {})
-        artifact_metadata = _read_artifact_metadata(model.artifact_path)
+        artifact_metadata = _read_artifact_metadata(resolve_artifact_path(model.artifact_path))
         metadata = {**artifact_metadata, **metadata}
 
         model_payloads.append(

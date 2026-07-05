@@ -1,7 +1,7 @@
 {
   "model_name": "XGBRegressor",
   "version": 1,
-  "artifact_path": "/Users/kaloha/ETAIQ/ml/artifacts/models/XGBRegressor_v1.joblib",
+  "artifact_path": "XGBRegressor_v1.joblib",
   "metrics": {
     "mae": 4.437311712612657,
     "rmse": 7.51258761808612,

@@ -57,22 +57,21 @@ class OpenRouterClient:
             self._client = None
             self._sdk_available = False
 
-    def generate_text(self, prompt: str, *, max_retries: int | None = None) -> str:
-        """Generate plain-text output from the provided prompt via OpenRouter."""
+    def chat(self, messages: list[dict[str, str]], *, max_retries: int | None = None) -> str:
+        """Send a structured messages list to OpenRouter and return the reply text."""
         if not self.api_key:
             raise OpenRouterClientError("OPENROUTER_API_KEY is not configured.")
-
         if not self._sdk_available or self._client is None:
             raise OpenRouterClientError("OpenRouter client is not available or failed to initialize.")
 
         effective_retries = max_retries or self.max_retries
-
         last_error: Exception | None = None
+
         for attempt in range(1, effective_retries + 1):
             try:
                 response = self._client.chat.completions.create(
                     model=self.model,
-                    messages=[{"role": "user", "content": prompt}],
+                    messages=messages,  # type: ignore[arg-type]
                 )
                 text = response.choices[0].message.content
                 if isinstance(text, str) and text.strip():
@@ -80,7 +79,7 @@ class OpenRouterClient:
                 raise OpenRouterClientError("OpenRouter returned an empty response.")
             except Exception as exc:  # pragma: no cover - defensive path
                 logger.warning(
-                    "openrouter_generate_failed",
+                    "openrouter_chat_failed",
                     attempt=attempt,
                     retries=effective_retries,
                     error=str(exc),
@@ -89,5 +88,8 @@ class OpenRouterClient:
 
         if last_error is not None:
             raise OpenRouterClientError(str(last_error)) from last_error
-
         raise OpenRouterClientError("OpenRouter request failed without a detailed error.")
+
+    def generate_text(self, prompt: str, *, max_retries: int | None = None) -> str:
+        """Convenience wrapper — sends a single user message via chat()."""
+        return self.chat([{"role": "user", "content": prompt}], max_retries=max_retries)

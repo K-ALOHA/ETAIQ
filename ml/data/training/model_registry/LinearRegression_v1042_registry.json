@@ -1,7 +1,7 @@
 {
   "model_name": "LinearRegression",
   "version": 1042,
-  "artifact_path": "data/training/model_registry/artifacts/models/LinearRegression_v1042.joblib",
+  "artifact_path": "LinearRegression_v1042.joblib",
   "metrics": {
     "mae": 8.881784197001252e-16,
     "rmse": 8.881784197001252e-16,

@@ -12,6 +12,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://etaiq:etaiq@postgres:5432/etaiq}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      MODEL_ARTIFACT_DIR: /app/ml/artifacts/models
     volumes:
       - ../backend:/app
       - ../ml:/app/ml
