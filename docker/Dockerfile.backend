@@ -13,10 +13,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt requirements/ ./
+COPY backend/ .
+COPY ml/ ml/
+
+RUN pwd
+RUN ls -la
+RUN find . -maxdepth 2
+
 RUN pip install -r requirements/dev.txt
 
-COPY . .
+COPY backend/ .
+COPY ml/ ml/
 
 EXPOSE 8000
 

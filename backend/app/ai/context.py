@@ -9,7 +9,16 @@ from typing import Any
 
 import pandas as pd
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+def _find_repo_root() -> Path:
+    """Walk up from this file until we find the directory containing ml/training."""
+    candidate = Path(__file__).resolve()
+    for parent in candidate.parents:
+        if (parent / "ml" / "training").is_dir():
+            return parent
+    return candidate.parents[2]  # fallback
+
+
+REPO_ROOT = _find_repo_root()
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -49,7 +58,7 @@ class ContextBuilder:
         self._monitoring_engine = MonitoringEngine()
         self._registry_engine = self._load_registry_engine()
         self._settings = settings
-        self._repo_root = Path(__file__).resolve().parents[3]
+        self._repo_root = REPO_ROOT
 
     @staticmethod
     def _load_registry_engine() -> Any:

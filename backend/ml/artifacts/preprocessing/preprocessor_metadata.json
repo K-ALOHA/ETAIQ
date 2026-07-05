@@ -1,0 +1,19 @@
+{
+  "preprocessing_version": 1,
+  "feature_names_in": [
+    "0"
+  ],
+  "datetime_columns": [],
+  "numeric_columns": [
+    "0"
+  ],
+  "raw_numeric_columns": [
+    "0"
+  ],
+  "imputer_statistics": {
+    "0": 0.0
+  },
+  "output_feature_names": [
+    "0"
+  ]
+}

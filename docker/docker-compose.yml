@@ -1,8 +1,8 @@
 services:
   backend:
     build:
-      context: ../backend
-      dockerfile: ../docker/Dockerfile.backend
+      context: ..
+      dockerfile: docker/Dockerfile.backend
       target: development
     container_name: etaiq-backend
     ports:
@@ -10,10 +10,11 @@ services:
     env_file:
       - ../backend/.env
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql://etaiq:etaiq@postgres:5432/etaiq}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://etaiq:etaiq@postgres:5432/etaiq}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
       - ../backend:/app
+      - ../ml:/app/ml
     depends_on:
       postgres:
         condition: service_healthy
@@ -31,7 +32,7 @@ services:
     env_file:
       - ../.env
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_API_URL: http://backend:8000
     volumes:
       - ../frontend:/app
       - /app/node_modules

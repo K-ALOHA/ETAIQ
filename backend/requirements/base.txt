@@ -31,4 +31,3 @@ bcrypt==4.2.1
 
 # --- Data Validation ---
 pandera==0.20.4
-great-expectations==1.2.5
