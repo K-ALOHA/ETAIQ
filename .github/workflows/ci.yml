@@ -2,28 +2,32 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: ["**"]
   pull_request:
-    branches: [main, develop]
+    branches: ["**"]
 
 env:
   PYTHON_VERSION: "3.11"
   NODE_VERSION: "20"
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Backend — lint (ruff) + tests (pytest)
+  # Installs only dev.txt which already pins ruff, pytest, httpx, pytest-cov.
+  # ML deps (xgboost, shap, catboost …) are NOT installed here; the API tests
+  # do not require them and they add ~5 min to the install step.
+  # ---------------------------------------------------------------------------
   backend:
-    name: Backend
+    name: Backend (lint + test)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -32,28 +36,26 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements/dev.txt
 
-      - name: Run linter
+      - name: Lint (ruff)
         run: ruff check .
 
-      - name: Run tests
+      - name: Test (pytest)
         run: pytest --tb=short -q
 
-      - name: Build backend
-        run: pip install -r requirements/prod.txt && python -c "from app.main import app; print(app.title)"
-
+  # ---------------------------------------------------------------------------
+  # Frontend — lint (eslint) + typecheck (tsc) + build + tests (vitest)
+  # ---------------------------------------------------------------------------
   frontend:
-    name: Frontend
+    name: Frontend (lint + typecheck + build + test)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -62,10 +64,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run linter
+      - name: Lint (eslint)
         run: npm run lint
 
-      - name: Build frontend
+      - name: Typecheck (tsc)
+        run: npx tsc --noEmit
+
+      - name: Build
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000
+          NEXT_PUBLIC_API_BASE: http://localhost:8000
+
+      - name: Test (vitest)
+        run: npm run test -- --run

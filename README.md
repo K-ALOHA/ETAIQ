@@ -6,6 +6,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org/)
 [![XGBoost](https://img.shields.io/badge/XGBoost-Production-orange)](https://xgboost.readthedocs.io/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![CI](https://github.com/kaloha/ETAIQ/actions/workflows/ci.yml/badge.svg)](https://github.com/kaloha/ETAIQ/actions/workflows/ci.yml)
 
 ---
 
