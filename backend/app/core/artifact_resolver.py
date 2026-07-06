@@ -28,7 +28,8 @@ def _artifact_dir() -> Path:
     if configured.is_absolute():
         return configured
 
-    # Try cwd-relative first (Docker: cwd=/app, so ./ml/artifacts/models -> /app/ml/artifacts/models)
+    # Try cwd-relative first (Docker: cwd=/app -> /app/ml/artifacts/models)
+    # noqa: E501 — inline comment, cannot be shortened without losing meaning
     cwd_candidate = (Path.cwd() / configured).resolve()
     if cwd_candidate.exists():
         return cwd_candidate

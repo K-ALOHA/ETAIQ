@@ -45,4 +45,6 @@ async def get_drift() -> DriftResponse:
         )
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.error("drift_failed", endpoint="/api/v1/drift", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="unable to detect drift") from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="unable to detect drift"
+        ) from exc

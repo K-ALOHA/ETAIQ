@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from app.ai.memory import ConversationMemory
 
 
-class ConversationState(str, Enum):
+class ConversationState(StrEnum):
     NORMAL_CHAT = "normal_chat"
     PREDICTION = "prediction"
     WAITING_FIELD = "waiting_field"

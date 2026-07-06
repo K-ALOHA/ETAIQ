@@ -44,4 +44,7 @@ async def list_monitoring() -> MonitoringResponse:
         )
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.error("monitoring_failed", endpoint="/api/v1/monitoring", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="unable to list monitoring records") from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="unable to list monitoring records",
+        ) from exc

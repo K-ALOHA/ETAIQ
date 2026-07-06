@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import time
 from typing import Any
 
@@ -15,7 +14,9 @@ logger = get_logger(__name__)
 class ContextRetriever:
     """Retrieve only the ETAIQ context relevant to a user question."""
 
-    def __init__(self, *, builder: ContextBuilder | None = None, cache_ttl_seconds: float = 30.0) -> None:
+    def __init__(
+        self, *, builder: ContextBuilder | None = None, cache_ttl_seconds: float = 30.0
+    ) -> None:
         self.builder = builder or ContextBuilder()
         self.cache_ttl_seconds = cache_ttl_seconds
         self._cache: dict[str, dict[str, Any]] = {}
@@ -27,7 +28,9 @@ class ContextRetriever:
         cache_key = "|".join(intents) if intents else "default"
         now = time.time()
         cached = self._cache.get(cache_key)
-        if cached is not None and cache_key in self._cache_fetched_at and now - self._cache_fetched_at[cache_key] < self.cache_ttl_seconds:
+        if cached is not None and cache_key in self._cache_fetched_at and (
+            now - self._cache_fetched_at[cache_key] < self.cache_ttl_seconds
+        ):
             return {"intents": intents, "context": cached["context"], "sources": cached["sources"]}
 
         context: dict[str, Any] = {}
@@ -89,25 +92,39 @@ class ContextRetriever:
         lowered = question.lower()
         intents: list[str] = []
 
-        if any(keyword in lowered for keyword in ["model", "production", "registry", "version", "accuracy", "compare", "summary"]):
+        if any(keyword in lowered for keyword in [
+            "model", "production", "registry", "version", "accuracy", "compare", "summary",
+        ]):
             intents.append("registry")
 
-        if any(keyword in lowered for keyword in ["monitor", "monitoring", "latency", "metric", "metrics", "today", "status"]):
+        if any(keyword in lowered for keyword in [
+            "monitor", "monitoring", "latency", "metric", "metrics", "today", "status",
+        ]):
             intents.append("monitoring")
 
-        if any(keyword in lowered for keyword in ["prediction", "predict", "explain this prediction", "latest prediction"]):
+        if any(keyword in lowered for keyword in [
+            "prediction", "predict", "explain this prediction", "latest prediction",
+        ]):
             intents.append("prediction")
 
         if any(keyword in lowered for keyword in ["health", "system", "status"]):
             intents.append("health")
 
-        if any(keyword in lowered for keyword in ["dataset", "feature", "features", "data", "target", "record"]):
+        if any(keyword in lowered for keyword in [
+            "dataset", "feature", "features", "data", "target", "record",
+        ]):
             intents.append("dataset")
 
-        if any(keyword in lowered for keyword in ["training", "train", "trained", "training run", "latest training"]):
+        if any(keyword in lowered for keyword in [
+            "training", "train", "trained", "training run", "latest training",
+        ]):
             intents.append("training")
 
-        if any(keyword in lowered for keyword in ["explain", "why", "important", "feature affect", "affect eta", "feature importance", "contributed most", "confidence", "confidence low", "what increased", "what decreased"]):
+        if any(keyword in lowered for keyword in [
+            "explain", "why", "important", "feature affect", "affect eta",
+            "feature importance", "contributed most", "confidence", "confidence low",
+            "what increased", "what decreased",
+        ]):
             intents.append("explainability")
 
         if any(keyword in lowered for keyword in ["drift", "shift", "deviation"]):

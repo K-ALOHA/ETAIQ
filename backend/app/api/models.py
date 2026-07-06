@@ -41,4 +41,6 @@ async def list_models() -> ModelRegistryResponse:
         )
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.error("models_failed", endpoint="/api/v1/models", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="unable to list models") from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="unable to list models"
+        ) from exc

@@ -14,7 +14,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
-        # Disable complex env parsing for specific fields (prevents cors_origins from being JSON-parsed)
+        # Disable complex env parsing (prevents cors_origins from being JSON-parsed)
         env_file_case_insensitive=True,
     )
 
@@ -33,22 +33,32 @@ class Settings(BaseSettings):
         description="JWT signing secret (REQUIRED - must be set in environment)",
     )
     openrouter_api_key: str = Field(default="", description="OpenRouter API key for AI assistant")
-    openrouter_model: str = Field(default="deepseek/deepseek-chat-v3", description="OpenRouter model name")
-    openrouter_base_url: str = Field(default="https://openrouter.ai/api/v1", description="OpenRouter API base URL")
+    openrouter_model: str = Field(
+        default="deepseek/deepseek-chat-v3", description="OpenRouter model name"
+    )
+    openrouter_base_url: str = Field(
+        default="https://openrouter.ai/api/v1", description="OpenRouter API base URL"
+    )
     model_path: str = Field(default="./ml/artifacts", description="Path to ML model artifacts")
-    model_artifact_dir: str = Field(default="./ml/artifacts/models", description="Directory containing .joblib model files")
+    model_artifact_dir: str = Field(
+        default="./ml/artifacts/models",
+        description="Directory containing .joblib model files",
+    )
     log_level: str = Field(default="INFO", description="Logging verbosity level")
 
     cors_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:3000", "http://localhost:3001"],
-        description="Allowed CORS origins for the frontend (use comma-separated list in CORS_ORIGINS env var)",
+        description=(
+            "Allowed CORS origins for the frontend"
+            " (use comma-separated list in CORS_ORIGINS env var)"
+        ),
         json_schema_extra={"env_parse": False}
     )
 
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v):
-        """Parse CORS origins: if it's a string, split by commas; if it's already a list, return as-is."""
+        """Parse CORS origins: split by commas if string, return as-is if list."""
         if isinstance(v, list):
             return v
         if isinstance(v, str):

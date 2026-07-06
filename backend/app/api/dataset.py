@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException, status
@@ -52,4 +51,7 @@ async def get_dataset() -> DatasetResponse:
         )
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.error("dataset_failed", endpoint="/api/v1/dataset", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="unable to get dataset summary") from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="unable to get dataset summary",
+        ) from exc

@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
+from datetime import UTC, datetime
 
 _SYSTEM_PROMPT = """
 You are ETAIQ Assistant — a professional AI logistics analyst and machine learning
@@ -71,7 +70,7 @@ class PromptBuilder:
             f"{_SYSTEM_PROMPT}\n\n"
             "--- APPLICATION CONTEXT (use this as your only source of truth) ---\n"
             f"{context}\n"
-            f"--- CURRENT UTC TIMESTAMP: {datetime.now(timezone.utc).isoformat()} ---"
+            f"--- CURRENT UTC TIMESTAMP: {datetime.now(UTC).isoformat()} ---"
         )
 
     def build_messages(

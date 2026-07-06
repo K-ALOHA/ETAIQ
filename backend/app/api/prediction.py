@@ -7,17 +7,17 @@ import time
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.api.models import registry_engine
 from app.core.artifact_resolver import resolve_artifact_path
 from app.core.config import get_settings
 from app.core.logging import get_logger
-from app.schemas.prediction import HealthResponse, ModelInfoResponse, PredictionRequest, PredictionResponse
-from ml.training.prediction_pipeline import PredictionPipelineEngine
+from app.schemas.prediction import HealthResponse, ModelInfoResponse, PredictionResponse
 from ml.training.monitoring import MonitoringEngine
+from ml.training.prediction_pipeline import PredictionPipelineEngine
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -79,7 +79,7 @@ def _validate_feature_payload(payload: dict[str, object] | None) -> dict[str, An
             raise ValueError("feature names must be strings")
         if feature_value is None:
             raise ValueError("feature values cannot be null")
-        if isinstance(feature_value, (dict, list, tuple, set)):
+        if isinstance(feature_value, dict | list | tuple | set):
             raise ValueError("feature values must be scalar values")
 
     return {str(key): value for key, value in payload.items()}
@@ -99,10 +99,14 @@ async def predict(request: Request) -> PredictionResponse:
         payload = await request.json()
     except ValueError as exc:
         logger.error("invalid_json", endpoint="/api/v1/predict", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid payload") from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid payload"
+        ) from exc
 
     try:
-        validated_payload = _validate_feature_payload(payload.get("features") if isinstance(payload, dict) else None)
+        validated_payload = _validate_feature_payload(
+            payload.get("features") if isinstance(payload, dict) else None
+        )
     except ValueError as exc:
         logger.error("invalid_request", endpoint="/api/v1/predict", error=str(exc))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -183,32 +187,44 @@ async def predict(request: Request) -> PredictionResponse:
         )
     except LookupError as exc:
         logger.error("registry_no_production_model", endpoint="/api/v1/predict", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
     except ValueError as exc:
         logger.error("registry_no_production_xgb_model", endpoint="/api/v1/predict", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
     except FileNotFoundError as exc:
         logger.error("production_artifact_missing", endpoint="/api/v1/predict", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
     except RuntimeError as exc:
-        logger.error("registry_multiple_production_models", endpoint="/api/v1/predict", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
-    except ValueError as exc:
-        logger.error("invalid_request", endpoint="/api/v1/predict", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        logger.error(
+            "registry_multiple_production_models", endpoint="/api/v1/predict", error=str(exc)
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.error("prediction_failed", endpoint="/api/v1/predict", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="prediction failed") from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="prediction failed"
+        ) from exc
 
 
 @router.get(
     "/models",
     response_model=ModelInfoResponse,
     summary="List available persisted models",
-    description="Returns the legacy model metadata payload expected by the prediction API and includes registry details.",
+    description="Returns the legacy model metadata payload expected by the prediction API"
+    " and includes registry details.",
 )
 async def list_models() -> ModelInfoResponse:
-    """Return the legacy model metadata response while exposing registry details for management endpoints."""
+    """Return the legacy model metadata response while exposing registry details
+    for management endpoints.
+    """
     logger.info("models_requested", endpoint="/api/v1/models")
 
     # Prefer the latest Production XGBRegressor model for dashboard and model metadata.
@@ -256,7 +272,11 @@ async def list_models() -> ModelInfoResponse:
         current_model=current_model,
         version=version,
         created_at=created_at,
-        available_models=[str(model.artifact_path.stem) for model in registered_models] if registered_models else [artifact.stem] if (current_model and current_model) else [],
+        available_models=(
+            [str(model.artifact_path.stem) for model in registered_models]
+            if registered_models
+            else ([artifact.stem] if (current_model and current_model) else [])
+        ),
         models=model_payloads,
         count=len(registered_models),
     )

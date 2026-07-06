@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from typing import Any
 
 from openai import OpenAI
 
@@ -23,8 +22,12 @@ class OpenRouterClient:
     def __init__(self, *, api_key: str | None = None, model: str | None = None) -> None:
         settings = get_settings()
         self.api_key = api_key or settings.openrouter_api_key or os.getenv("OPENROUTER_API_KEY", "")
-        self.model = model or settings.openrouter_model or os.getenv("OPENROUTER_MODEL", "deepseek/deepseek-chat-v3")
-        self.base_url = settings.openrouter_base_url or os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+        self.model = model or settings.openrouter_model or os.getenv(
+            "OPENROUTER_MODEL", "deepseek/deepseek-chat-v3"
+        )
+        self.base_url = settings.openrouter_base_url or os.getenv(
+            "OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"
+        )
         self.max_retries = int(os.getenv("OPENROUTER_MAX_RETRIES", "3"))
 
         self._client: OpenAI | None = None
@@ -62,7 +65,9 @@ class OpenRouterClient:
         if not self.api_key:
             raise OpenRouterClientError("OPENROUTER_API_KEY is not configured.")
         if not self._sdk_available or self._client is None:
-            raise OpenRouterClientError("OpenRouter client is not available or failed to initialize.")
+            raise OpenRouterClientError(
+                "OpenRouter client is not available or failed to initialize."
+            )
 
         effective_retries = max_retries or self.max_retries
         last_error: Exception | None = None

@@ -15,7 +15,9 @@ def client() -> TestClient:
     return TestClient(app)
 
 
-def test_assistant_chat_successful_request(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_assistant_chat_successful_request(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
     class StubService:
         def __init__(self) -> None:
             self._llm_client = SimpleNamespace(_sdk_available=True, api_key="test")
@@ -27,7 +29,9 @@ def test_assistant_chat_successful_request(client: TestClient, monkeypatch: pyte
                 conversation_id=request.conversation_id or "conv-123",
             )
 
-    monkeypatch.setattr("app.api.assistant.ETAIQAssistantService", lambda *args, **kwargs: StubService())
+    monkeypatch.setattr(
+        "app.api.assistant.ETAIQAssistantService", lambda *args, **kwargs: StubService()
+    )
 
     response = client.post(
         "/api/v1/assistant/chat",
@@ -51,7 +55,9 @@ def test_assistant_chat_invalid_payload(client: TestClient) -> None:
     assert response.json()["detail"] == "invalid request"
 
 
-def test_assistant_chat_llm_unavailable(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_assistant_chat_llm_unavailable(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
     class StubService:
         def __init__(self) -> None:
             self._llm_client = SimpleNamespace(_sdk_available=False, api_key="")
@@ -74,7 +80,9 @@ def test_assistant_chat_llm_unavailable(client: TestClient, monkeypatch: pytest.
     assert response.json()["response"] == "Fallback response"
 
 
-def test_assistant_chat_conversation_continuation(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_assistant_chat_conversation_continuation(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
     captured: list[str | None] = []
 
     class StubService:

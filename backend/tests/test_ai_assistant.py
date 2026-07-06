@@ -1,11 +1,8 @@
-from pathlib import Path
-
 import pytest
 
 from app.ai.assistant import ETAIQAssistantService, Intent
 from app.ai.conversation import ConversationState
 from app.ai.schemas import AssistantRequest, AssistantResponse
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -236,7 +233,7 @@ async def test_prediction_to_model_metrics_switch() -> None:
     conv_id = "test_switch_2"
 
     request1 = AssistantRequest(message="estimate eta", conversation_id=conv_id)
-    response1 = await service.handle_message(request1)
+    await service.handle_message(request1)
     assert _in_prediction(service, conv_id)
 
     request2 = AssistantRequest(message="show model metrics", conversation_id=conv_id)
@@ -254,7 +251,7 @@ async def test_prediction_to_explain_switch() -> None:
     conv_id = "test_switch_3"
 
     request1 = AssistantRequest(message="predict eta", conversation_id=conv_id)
-    response1 = await service.handle_message(request1)
+    await service.handle_message(request1)
     assert _in_prediction(service, conv_id)
 
     request2 = AssistantRequest(message="explain latest prediction", conversation_id=conv_id)
@@ -272,7 +269,7 @@ async def test_prediction_to_dataset_summary_switch() -> None:
     conv_id = "test_switch_4"
 
     request1 = AssistantRequest(message="estimate eta", conversation_id=conv_id)
-    response1 = await service.handle_message(request1)
+    await service.handle_message(request1)
     assert _in_prediction(service, conv_id)
 
     request2 = AssistantRequest(message="summarize dataset", conversation_id=conv_id)
@@ -296,6 +293,8 @@ async def test_prediction_flow_cancel() -> None:
     await service.handle_message(AssistantRequest(message="predict eta", conversation_id=conv_id))
     assert _in_prediction(service, conv_id)
 
-    response = await service.handle_message(AssistantRequest(message="cancel", conversation_id=conv_id))
+    response = await service.handle_message(
+        AssistantRequest(message="cancel", conversation_id=conv_id)
+    )
     assert not _in_prediction(service, conv_id)
     assert "cancel" in response.response.lower()

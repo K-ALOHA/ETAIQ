@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.models import registry_engine
@@ -47,7 +44,7 @@ async def get_performance() -> PerformanceResponse:
         for record in records:
             for key in ("latency_ms", "prediction_latency_ms", "latency"):
                 val = getattr(record, key, None)
-                if isinstance(val, (int, float)):
+                if isinstance(val, int | float):
                     inference_latency_ms = float(val)
                     break
             if inference_latency_ms is not None:
@@ -62,4 +59,7 @@ async def get_performance() -> PerformanceResponse:
         )
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.error("performance_failed", endpoint="/api/v1/performance", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="unable to get performance metrics") from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="unable to get performance metrics",
+        ) from exc

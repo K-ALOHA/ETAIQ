@@ -9,7 +9,6 @@ import joblib
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from xgboost import XGBRegressor
 
@@ -55,7 +54,12 @@ def test_train_endpoint(client: TestClient) -> None:
     """The training endpoint should accept a training request and return metadata."""
     response = client.post(
         "/api/v1/train",
-        json={"X_train": [[0.0], [1.0], [2.0], [3.0]], "X_test": [[4.0]], "y_train": [0.0, 1.0, 2.0, 3.0], "y_test": [4.0]},
+        json={
+            "X_train": [[0.0], [1.0], [2.0], [3.0]],
+            "X_test": [[4.0]],
+            "y_train": [0.0, 1.0, 2.0, 3.0],
+            "y_test": [4.0],
+        },
     )
 
     assert response.status_code == 200
@@ -112,13 +116,18 @@ def test_explainability_endpoint(client: TestClient) -> None:
     assert payload["feature_importance"]
 
 
-def test_latest_explainability_uses_registered_production_model(client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The latest explainability endpoint should use the registered production model and generate metadata from it."""
+def test_latest_explainability_uses_registered_production_model(
+    client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The /explainability/latest endpoint should use the registered production model."""
     monkeypatch.setattr(explainability_module, "_find_latest_artifact_dir", lambda _: None)
 
     model_path = tmp_path / "XGBRegressor_v2.joblib"
     model = XGBRegressor(n_estimators=3, max_depth=2, random_state=0)
-    model.fit(np.array([[0.0, 1.0, 2.0], [1.0, 2.0, 3.0], [2.0, 3.0, 4.0]]), np.array([0.0, 1.0, 2.0]))
+    model.fit(
+        np.array([[0.0, 1.0, 2.0], [1.0, 2.0, 3.0], [2.0, 3.0, 4.0]]),
+        np.array([0.0, 1.0, 2.0]),
+    )
     joblib.dump(model, model_path)
 
     explainability_module.registry_engine._models.clear()
@@ -149,7 +158,7 @@ def test_latest_explainability_uses_registered_production_model(client: TestClie
 
 
 def test_latest_explainability_rejects_linear_regression_fallback(tmp_path: Path) -> None:
-    """The explainability endpoint should not silently fall back to LinearRegression when no Production XGBRegressor exists."""
+    """The /explainability/latest endpoint should 404 when no Production XGBRegressor exists."""
     registry_engine._storage_dir = tmp_path / "registry"
     registry_engine._storage_dir.mkdir(parents=True, exist_ok=True)
     registry_engine._models.clear()
@@ -168,7 +177,7 @@ def test_latest_explainability_rejects_linear_regression_fallback(tmp_path: Path
 
 
 def test_explainability_artifacts_are_generated_for_xgbregressor(tmp_path: Path) -> None:
-    """Explainability artifact generation should write SHAP metadata for the Production XGBRegressor."""
+    """Artifact generation should write SHAP metadata for the Production XGBRegressor."""
     registry_engine._storage_dir = tmp_path / "registry"
     registry_engine._storage_dir.mkdir(parents=True, exist_ok=True)
     registry_engine._models.clear()
@@ -184,7 +193,10 @@ def test_explainability_artifacts_are_generated_for_xgbregressor(tmp_path: Path)
         model_path,
         {"mae": 0.1},
         "Production",
-        metadata={"feature_names": ["distance_km", "traffic_density"], "target_column": "actual_delivery_time_min"},
+        metadata={
+            "feature_names": ["distance_km", "traffic_density"],
+            "target_column": "actual_delivery_time_min",
+        },
     )
 
     artifact_context = explainability_module._ensure_explainability_artifacts(registered, tmp_path)
@@ -197,22 +209,27 @@ def test_explainability_artifacts_are_generated_for_xgbregressor(tmp_path: Path)
     assert shap_payload["model_name"] == "XGBRegressor"
 
 
-def test_explainability_endpoint_uses_persisted_artifacts(client: TestClient, tmp_path: Path) -> None:
-    """The explainability endpoint should read persisted explainability artifacts when they exist."""
+def test_explainability_endpoint_uses_persisted_artifacts(
+    client: TestClient, tmp_path: Path
+) -> None:
+    """The explainability endpoint should read persisted artifacts when they exist."""
     artifact_dir = tmp_path / "explainability" / "XGBRegressor" / "2"
     artifact_dir.mkdir(parents=True, exist_ok=True)
     metadata_path = artifact_dir / "metadata.json"
+    fi_path = str(artifact_dir / "feature_importance.json")
+    shap_path = str(artifact_dir / "shap_summary.json")
     metadata_path.write_text(
-        '{"model_name": "XGBRegressor", "version": 2, "explainability_available": true, "feature_importance_path": "'
-        + str(artifact_dir / "feature_importance.json")
-        + '", "shap_path": "'
-        + str(artifact_dir / "shap_summary.json")
-        + '"}',
+        '{"model_name": "XGBRegressor", "version": 2, "explainability_available": true,'
+        ' "feature_importance_path": "' + fi_path + '", "shap_path": "'
+        + shap_path + '"}',
         encoding="utf-8",
     )
     feature_importance_path = artifact_dir / "feature_importance.json"
     feature_importance_path.write_text(
-        '{"model_name": "XGBRegressor", "method": "feature_importance", "feature_importance": {"feature_0": 0.75}, "ranked_features": [{"feature_name": "feature_0", "importance": 0.75}], "generated_at": "2026-01-01T00:00:00Z"}',
+        '{"model_name": "XGBRegressor", "method": "feature_importance",'
+        ' "feature_importance": {"feature_0": 0.75},'
+        ' "ranked_features": [{"feature_name": "feature_0", "importance": 0.75}],'
+        ' "generated_at": "2026-01-01T00:00:00Z"}',
         encoding="utf-8",
     )
 

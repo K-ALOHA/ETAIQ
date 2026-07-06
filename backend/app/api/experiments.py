@@ -43,4 +43,6 @@ async def list_experiments() -> ExperimentHistoryResponse:
         )
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.error("experiments_failed", endpoint="/api/v1/experiments", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="unable to list experiments") from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="unable to list experiments"
+        ) from exc

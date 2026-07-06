@@ -3,7 +3,7 @@ from __future__ import annotations
 from app.ai.assistant import ETAIQAssistantService
 from app.ai.openrouter_client import OpenRouterClientError
 from app.ai.retriever import ContextRetriever
-from app.ai.schemas import AssistantRequest, AssistantResponse
+from app.ai.schemas import AssistantRequest
 
 
 class StubBuilder:
@@ -17,7 +17,11 @@ class StubBuilder:
 
     def get_registry_context(self) -> dict[str, object]:
         self.calls.append("registry")
-        return {"production_model": "XGBRegressor", "version": 2, "metrics": {"mae": 1.2, "rmse": 2.3, "r2": 0.81}}
+        return {
+            "production_model": "XGBRegressor",
+            "version": 2,
+            "metrics": {"mae": 1.2, "rmse": 2.3, "r2": 0.81},
+        }
 
     def get_monitoring_context(self) -> dict[str, object]:
         self.calls.append("monitoring")
@@ -33,11 +37,18 @@ class StubBuilder:
 
     def get_training_context(self) -> dict[str, object]:
         self.calls.append("training")
-        return {"latest_training_runs": [{"model_name": "XGBRegressor", "version": 2, "training_timestamp": "2026-01-01"}]}
+        return {
+            "latest_training_runs": [
+                {"model_name": "XGBRegressor", "version": 2, "training_timestamp": "2026-01-01"}
+            ]
+        }
 
     def get_latest_prediction_context(self) -> dict[str, object]:
         self.calls.append("prediction")
-        return {"status": "available", "summary": {"prediction_count": 20, "model_name": "XGBRegressor"}}
+        return {
+            "status": "available",
+            "summary": {"prediction_count": 20, "model_name": "XGBRegressor"},
+        }
 
     def get_eda_context(self) -> dict[str, object]:
         self.calls.append("eda")
@@ -50,7 +61,10 @@ class StubBuilder:
         return {
             "available": True,
             "summary": "The model relied most on road network and traffic features.",
-            "top_features": [{"feature_name": "lat", "importance": 0.42}, {"feature_name": "lon", "importance": 0.24}],
+            "top_features": [
+                {"feature_name": "lat", "importance": 0.42},
+                {"feature_name": "lon", "importance": 0.24},
+            ],
             "confidence": "moderate",
         }
 
@@ -95,9 +109,16 @@ def test_source_attribution_tracks_used_modules() -> None:
 
 
 def test_fallback_path_uses_retrieved_context() -> None:
-    service = ETAIQAssistantService(client=FailingLLMClient(), context_builder=StubBuilder(), retriever=ContextRetriever(builder=StubBuilder()), conversation_manager=None)
+    service = ETAIQAssistantService(
+        client=FailingLLMClient(),
+        context_builder=StubBuilder(),
+        retriever=ContextRetriever(builder=StubBuilder()),
+        conversation_manager=None,
+    )
 
-    response = service.handle_message(AssistantRequest(message="What model is in production?", conversation_id=None))
+    response = service.handle_message(
+        AssistantRequest(message="What model is in production?", conversation_id=None)
+    )
 
     assert "XGBRegressor" in response.response
     assert response.sources == ["Model Registry"]
@@ -133,9 +154,16 @@ def test_follow_up_conversation_keeps_explainability_context() -> None:
             return "Summary\nTop contributing features\nConfidence\nSuggested actions\nSources"
 
     client = RecordingLLMClient()
-    service = ETAIQAssistantService(client=client, context_builder=StubBuilder(), retriever=ContextRetriever(builder=StubBuilder()), conversation_manager=None)
+    service = ETAIQAssistantService(
+        client=client,
+        context_builder=StubBuilder(),
+        retriever=ContextRetriever(builder=StubBuilder()),
+        conversation_manager=None,
+    )
 
-    first = service.handle_message(AssistantRequest(message="Explain this prediction.", conversation_id="followup"))
+    first = service.handle_message(
+        AssistantRequest(message="Explain this prediction.", conversation_id="followup")
+    )
     second = service.handle_message(AssistantRequest(message="Why?", conversation_id="followup"))
 
     assert first.sources[-1] == "Explainability"

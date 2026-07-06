@@ -18,7 +18,8 @@ router = APIRouter(prefix="/assistant", tags=["assistant"])
 
 @lru_cache(maxsize=1)
 def get_assistant_service() -> ETAIQAssistantService:
-    """Return a shared assistant service instance so conversation history persists across requests."""
+    """Return a shared assistant service instance so conversation history persists across requests.
+    """
     return ETAIQAssistantService()
 
 
@@ -47,22 +48,30 @@ async def chat_with_assistant(request: Request) -> AssistantResponse:
         payload = await request.json()
     except ValueError as exc:
         logger.warning("assistant_invalid_json", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid request") from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid request"
+        ) from exc
 
     if not isinstance(payload, dict):
         logger.warning("assistant_invalid_payload", payload_type=type(payload).__name__)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid request")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid request"
+        )
 
     message = payload.get("message")
     conversation_id = payload.get("conversation_id")
 
     if not isinstance(message, str) or not message.strip():
         logger.warning("assistant_invalid_message")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid request")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid request"
+        )
 
     if conversation_id is not None and not isinstance(conversation_id, str):
         logger.warning("assistant_invalid_conversation_id")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid request")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid request"
+        )
 
     service = get_assistant_service()
     if not _is_llm_available(service):
@@ -76,7 +85,11 @@ async def chat_with_assistant(request: Request) -> AssistantResponse:
         return await service.handle_message(assistant_request)
     except ValidationError as exc:
         logger.warning("assistant_invalid_request", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid request") from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid request"
+        ) from exc
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.exception("assistant_internal_error", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="assistant internal error") from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="assistant internal error"
+        ) from exc

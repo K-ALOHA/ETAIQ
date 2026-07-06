@@ -16,7 +16,7 @@ class TrainingRequest(BaseModel):
     y_test: list[float] | None = Field(default=None, description="Test target vector")
 
     @model_validator(mode="after")
-    def validate_inputs(self) -> "TrainingRequest":
+    def validate_inputs(self) -> TrainingRequest:
         """Ensure the payload is well-formed before dispatching training."""
         if self.X_train is None:
             self.X_train = [[0.0], [1.0], [2.0], [3.0]]

@@ -12,8 +12,12 @@ class AssistantRequest(BaseModel):
     """Incoming assistant request payload."""
 
     message: str = Field(..., min_length=1, description="User message to process")
-    conversation_id: str | None = Field(default=None, description="Existing conversation identifier")
-    context: dict[str, Any] | None = Field(default=None, description="Optional caller-supplied context")
+    conversation_id: str | None = Field(
+        default=None, description="Existing conversation identifier"
+    )
+    context: dict[str, Any] | None = Field(
+        default=None, description="Optional caller-supplied context"
+    )
 
 
 class ConversationTurn(BaseModel):
@@ -28,5 +32,9 @@ class AssistantResponse(BaseModel):
     """Structured assistant response returned to the caller."""
 
     response: str = Field(..., description="Plain-text assistant answer")
-    sources: list[str] = Field(default_factory=list, description="Context sources used to compose the answer")
-    conversation_id: str = Field(..., description="Conversation identifier for follow-up turns")
+    sources: list[str] = Field(
+        default_factory=list, description="Context sources used to compose the answer"
+    )
+    conversation_id: str = Field(
+        ..., description="Conversation identifier for follow-up turns"
+    )

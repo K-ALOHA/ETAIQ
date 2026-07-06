@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from app.ai.context import AIContextBuilder, ContextBuilder
+from app.ai.context import AIContextBuilder
 from app.ai.conversation import ConversationManager, ConversationState
 from app.ai.openrouter_client import OpenRouterClient, OpenRouterClientError
 from app.ai.prompts import PromptBuilder
@@ -35,7 +36,11 @@ _PREDICTION_SECTIONS: list[dict[str, Any]] = [
             {"name": "lat", "label": "Restaurant latitude", "unit": "decimal degrees"},
             {"name": "lon", "label": "Restaurant longitude", "unit": "decimal degrees"},
             {"name": "avg_rating", "label": "Restaurant average rating", "unit": "0–5 scale"},
-            {"name": "prep_capacity", "label": "Restaurant preparation capacity", "unit": "orders/hour"},
+            {
+                "name": "prep_capacity",
+                "label": "Restaurant preparation capacity",
+                "unit": "orders/hour",
+            },
         ],
     },
     {
@@ -53,7 +58,11 @@ _PREDICTION_SECTIONS: list[dict[str, Any]] = [
             {"name": "id_rider", "label": "Rider ID", "unit": "numeric ID"},
             {"name": "lat_rider", "label": "Rider current latitude", "unit": "decimal degrees"},
             {"name": "lon_rider", "label": "Rider current longitude", "unit": "decimal degrees"},
-            {"name": "completed_orders", "label": "Rider completed orders today", "unit": "orders"},
+            {
+                "name": "completed_orders",
+                "label": "Rider completed orders today",
+                "unit": "orders",
+            },
             {"name": "shift_hours", "label": "Rider shift hours worked", "unit": "hours"},
             {"name": "current_load", "label": "Rider current load", "unit": "active orders"},
         ],
@@ -65,17 +74,23 @@ _ALL_FIELDS: list[dict[str, Any]] = [
 ]
 
 _CANCEL_WORDS = {"cancel", "restart", "exit", "quit", "never mind", "nevermind", "stop"}
-_PREDICT_TRIGGERS = {"predict", "make prediction", "predict eta", "estimate eta", "start prediction", "run prediction", "new prediction"}
+_PREDICT_TRIGGERS = {
+    "predict",
+    "make prediction",
+    "predict eta",
+    "estimate eta",
+    "start prediction",
+    "run prediction",
+    "new prediction",
+}
 
 
 # ---------------------------------------------------------------------------
 # Intent enum — kept for backward compatibility with existing tests
 # ---------------------------------------------------------------------------
 
-from enum import Enum  # noqa: E402
 
-
-class Intent(str, Enum):
+class Intent(StrEnum):
     GREETING = "greeting"
     HELP = "help"
     PREDICT = "predict"
@@ -95,12 +110,31 @@ class Intent(str, Enum):
     UNKNOWN = "general_chat"
 
 
-_GREETING_WORDS = {"hi", "hello", "hey", "howdy", "greetings", "good morning", "good afternoon", "good evening"}
-_HELP_TRIGGERS = {"help", "what can you do", "capabilities", "commands", "what do you do", "how do you work", "options"}
-_EXPLAIN_TRIGGERS = {"explain", "explain prediction", "explain latest", "explain last", "why", "why did", "what drove", "what caused"}
-_FEATURE_IMPORTANCE_TRIGGERS = {"feature importance", "important features", "top features", "what features", "which features", "feature weights", "shap"}
-_MODEL_TRIGGERS = {"model", "model info", "model summary", "production model", "current model", "which model", "model version", "model metrics", "model performance", "compare models", "model details", "performance", "compare"}
-_DATASET_TRIGGERS = {"dataset", "data", "training data", "dataset info", "dataset summary", "how many records", "columns", "features", "target column", "summarize dataset"}
+_GREETING_WORDS = {
+    "hi", "hello", "hey", "howdy", "greetings",
+    "good morning", "good afternoon", "good evening",
+}
+_HELP_TRIGGERS = {
+    "help", "what can you do", "capabilities", "commands",
+    "what do you do", "how do you work", "options",
+}
+_EXPLAIN_TRIGGERS = {
+    "explain", "explain prediction", "explain latest", "explain last",
+    "why", "why did", "what drove", "what caused",
+}
+_FEATURE_IMPORTANCE_TRIGGERS = {
+    "feature importance", "important features", "top features",
+    "what features", "which features", "feature weights", "shap",
+}
+_MODEL_TRIGGERS = {
+    "model", "model info", "model summary", "production model", "current model",
+    "which model", "model version", "model metrics", "model performance",
+    "compare models", "model details", "performance", "compare",
+}
+_DATASET_TRIGGERS = {
+    "dataset", "data", "training data", "dataset info", "dataset summary",
+    "how many records", "columns", "features", "target column", "summarize dataset",
+}
 
 
 def detect_intent(message: str) -> Intent:
@@ -201,7 +235,9 @@ class ETAIQAssistantService:
         retriever: Any | None = None,
         context_builder: Any | None = None,
     ) -> None:
-        self.conversation_manager = conversation_manager or ConversationManager(history_limit=history_limit)
+        self.conversation_manager = conversation_manager or ConversationManager(
+            history_limit=history_limit
+        )
         self._chat_service = chat_service or ChatService()
         self._repo_root = Path(__file__).resolve().parents[3]
 
@@ -218,6 +254,7 @@ class ETAIQAssistantService:
 
     def _handle_message_legacy(self, request: AssistantRequest) -> AssistantResponse:
         import json as _json
+
         cid = request.conversation_id or self.conversation_manager.create_conversation_id()
         context: dict[str, Any] = {}
         sources: list[str] = []
@@ -233,7 +270,9 @@ class ETAIQAssistantService:
             response_text = llm.generate_text(prompt)
         except Exception:
             parts = [f"{k}: {v}" for k, v in context.items()]
-            response_text = "\n".join(parts) if parts else "I couldn't generate a response right now."
+            response_text = (
+                "\n".join(parts) if parts else "I couldn't generate a response right now."
+            )
         self.conversation_manager.add_turn(cid, role="user", content=request.message)
         self.conversation_manager.add_turn(cid, role="assistant", content=response_text)
         return AssistantResponse(response=response_text, sources=sources, conversation_id=cid)
@@ -263,7 +302,9 @@ class ETAIQAssistantService:
     # State machine: inside prediction flow
     # ------------------------------------------------------------------
 
-    async def _handle_in_prediction(self, cid: str, m: str, history: list[dict[str, str]]) -> str:
+    async def _handle_in_prediction(
+        self, cid: str, m: str, history: list[dict[str, str]]
+    ) -> str:
         if any(w in m for w in _CANCEL_WORDS):
             self.conversation_manager.clear_prediction_data(cid)
             self.conversation_manager.set_state(cid, ConversationState.NORMAL_CHAT)
@@ -281,7 +322,9 @@ class ETAIQAssistantService:
 
         return await self._collect_field(cid, m, history)
 
-    async def _collect_field(self, cid: str, m: str, history: list[dict[str, str]]) -> str:
+    async def _collect_field(
+        self, cid: str, m: str, history: list[dict[str, str]]
+    ) -> str:
         data = self.conversation_manager.get_prediction_data(cid)
         section_idx: int = data.get("section_index", 0)
         field_idx: int = data.get("field_index", 0)
@@ -314,7 +357,14 @@ class ETAIQAssistantService:
 
         if section_idx < len(_PREDICTION_SECTIONS):
             next_section = _PREDICTION_SECTIONS[section_idx]
-            data.update({"section_index": section_idx, "field_index": 0, "collected": collected, "completed_sections": completed_sections})
+            data.update(
+                {
+                    "section_index": section_idx,
+                    "field_index": 0,
+                    "collected": collected,
+                    "completed_sections": completed_sections,
+                }
+            )
             self.conversation_manager.set_prediction_data(cid, data)
             return self._section_transition(completed_sections, next_section)
 
@@ -322,7 +372,9 @@ class ETAIQAssistantService:
         self.conversation_manager.set_state(cid, ConversationState.NORMAL_CHAT)
         return await self._run_prediction_and_explain(collected, completed_sections, history)
 
-    def _section_transition(self, completed_sections: list[str], next_section: dict[str, Any]) -> str:
+    def _section_transition(
+        self, completed_sections: list[str], next_section: dict[str, Any]
+    ) -> str:
         done_lines = "\n".join(f"  ✓ {s}" for s in completed_sections)
         first_field = next_section["fields"][0]
         return (
@@ -346,12 +398,15 @@ class ETAIQAssistantService:
 
         try:
             import pandas as pd
+
             from app.api.models import registry_engine
             from ml.training.prediction_pipeline import PredictionPipelineEngine
 
             production_model = registry_engine.select_production_model("XGBRegressor")
             pipeline = PredictionPipelineEngine(logger=None)
-            result = pipeline.predict(production_model.artifact_path, pd.DataFrame([features]))
+            result = pipeline.predict(
+                production_model.artifact_path, pd.DataFrame([features])
+            )
             eta = float(result.predictions[0])
         except Exception as exc:
             logger.error("assistant_run_prediction_failed", error=str(exc))
@@ -387,7 +442,8 @@ class ETAIQAssistantService:
             logger.warning("assistant_explain_after_prediction_failed", error=str(exc))
             explanation = (
                 f"The model predicted an ETA of **{eta:.1f} minutes**. "
-                "A detailed explanation is unavailable right now — the LLM service could not be reached."
+                "A detailed explanation is unavailable right now — "
+                "the LLM service could not be reached."
             )
 
         return (
@@ -408,7 +464,9 @@ class ETAIQAssistantService:
     # Normal chat dispatch — all paths go through ChatService
     # ------------------------------------------------------------------
 
-    async def _dispatch(self, cid: str, m: str, raw: str, history: list[dict[str, str]]) -> str:
+    async def _dispatch(
+        self, cid: str, m: str, raw: str, history: list[dict[str, str]]
+    ) -> str:
         if any(t in m for t in _PREDICT_TRIGGERS):
             return self._start_prediction(cid)
 
@@ -457,7 +515,7 @@ class ETAIQAssistantService:
             f"{len(_PREDICTION_SECTIONS)} sections ({total_fields} values total).\n\n"
             f"**Section 1 of {len(_PREDICTION_SECTIONS)}: {first_section['title']}**\n"
             f"_{first_section['description']}_\n\n"
-            f"**{first_field['label']}** ({first_field['unit']})?\n\n"
+            f"**{first_field['label']}** ({first_field['unit']})?\\n\n"
             f"_(Type **cancel** at any time to exit.)_"
         )
 
@@ -465,6 +523,7 @@ class ETAIQAssistantService:
         """Return the latest mean prediction from monitoring records."""
         try:
             from ml.training.monitoring import MonitoringEngine
+
             engine = MonitoringEngine(load_existing_records=True)
             record = engine.get_latest()
             if record is not None:

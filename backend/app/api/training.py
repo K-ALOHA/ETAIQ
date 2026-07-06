@@ -89,4 +89,6 @@ async def train(request: TrainingRequest) -> TrainingResponse:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.error("training_failed", endpoint="/api/v1/train", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="training failed") from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="training failed"
+        ) from exc

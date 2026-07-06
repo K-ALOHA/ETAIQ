@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import joblib
@@ -66,7 +65,7 @@ def test_successful_prediction(client: TestClient) -> None:
     payload = response.json()
     assert payload["model_name"] == "XGBRegressor"
     assert payload["model_version"] == 2
-    assert isinstance(payload["prediction"], (int, float))
+    assert isinstance(payload["prediction"], int | float)
     assert payload["processing_time_ms"] >= 0.0
 
 
@@ -123,8 +122,10 @@ def test_model_not_found(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     assert response.json()["detail"] == "No production model is registered."
 
 
-def test_prediction_prefers_latest_production_xgbregressor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The prediction endpoint should prefer the latest Production XGBRegressor over legacy LinearRegression."""
+def test_prediction_prefers_latest_production_xgbregressor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The prediction endpoint should prefer the latest Production XGBRegressor."""
     monkeypatch.setattr(prediction_module.settings, "model_path", str(tmp_path))
 
     registry_engine._storage_dir = tmp_path / "registry"
@@ -153,7 +154,9 @@ def test_prediction_prefers_latest_production_xgbregressor(tmp_path: Path, monke
     assert payload["model_version"] == 2
 
 
-def test_models_endpoint_reports_latest_production_xgbregressor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_models_endpoint_reports_latest_production_xgbregressor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The models endpoint should report the latest Production XGBRegressor as the active model."""
     monkeypatch.setattr(prediction_module.settings, "model_path", str(tmp_path))
 
@@ -182,8 +185,10 @@ def test_models_endpoint_reports_latest_production_xgbregressor(tmp_path: Path, 
     assert payload["version"] == 2
 
 
-def test_prediction_requires_existing_production_artifact(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The prediction endpoint should reject a production registry entry whose artifact is missing."""
+def test_prediction_requires_existing_production_artifact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The prediction endpoint should reject a registry entry whose artifact is missing."""
     monkeypatch.setattr(prediction_module.settings, "model_path", str(tmp_path))
 
     registry_engine._storage_dir = tmp_path / "registry"

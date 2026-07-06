@@ -16,9 +16,9 @@ from app.core.logging import get_logger
 from app.schemas.ml_management import ExplainabilityLatestResponse, ExplainabilityResponse
 from ml.training.explainability import ExplainabilityEngine
 from ml.training.explainability_artifacts import ExplainabilityArtifactGenerator
+from ml.training.model_registry import RegisteredModel
 from ml.training.monitoring import MonitoringEngine
 from ml.training.persistence import ModelPersistenceEngine
-from ml.training.model_registry import RegisteredModel
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -29,7 +29,9 @@ router = APIRouter(tags=["explainability"])
     "/explainability/latest",
     response_model=ExplainabilityLatestResponse,
     summary="Get the latest persisted explainability workspace payload",
-    description="Returns explainability artifacts and summary metrics for the latest production model.",
+    description=(
+        "Returns explainability artifacts and summary metrics for the latest production model."
+    ),
 )
 async def get_latest_explainability() -> ExplainabilityLatestResponse:
     """Return the latest explainability payload for the active production model."""
@@ -38,7 +40,10 @@ async def get_latest_explainability() -> ExplainabilityLatestResponse:
     repo_root = Path(__file__).resolve().parents[3]
     production_model = _select_latest_production_model()
     if production_model is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No Production XGBRegressor model is registered")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No Production XGBRegressor model is registered",
+        )
 
     prebuilt_dir = _find_latest_artifact_dir(production_model.model_name)
     if prebuilt_dir is not None:
@@ -47,10 +52,14 @@ async def get_latest_explainability() -> ExplainabilityLatestResponse:
             "metadata_path": str(prebuilt_dir / "metadata.json"),
         }
     else:
-        artifact_context = _ensure_explainability_artifacts(production_model, repo_root, force_regenerate=True)
+        artifact_context = _ensure_explainability_artifacts(
+            production_model, repo_root, force_regenerate=True
+        )
     artifact_dir = Path(artifact_context["output_dir"]) if artifact_context else None
     if artifact_dir is None or not artifact_dir.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No explainability artifacts found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No explainability artifacts found"
+        )
 
     metadata_path = artifact_dir / "metadata.json"
     feature_importance_path = artifact_dir / "feature_importance.json"
@@ -65,8 +74,14 @@ async def get_latest_explainability() -> ExplainabilityLatestResponse:
     monitoring_engine = MonitoringEngine(load_existing_records=True)
     latest_monitor_record = monitoring_engine.get_latest()
 
-    latest_prediction_value = latest_monitor_record.mean_prediction if latest_monitor_record else 0.0
-    prediction_time = latest_monitor_record.timestamp if latest_monitor_record else str(metadata_payload.get("trained_at") or metadata_payload.get("generated_at") or "")
+    latest_prediction_value = (
+        latest_monitor_record.mean_prediction if latest_monitor_record else 0.0
+    )
+    prediction_time = latest_monitor_record.timestamp if latest_monitor_record else str(
+        metadata_payload.get("trained_at")
+        or metadata_payload.get("generated_at")
+        or ""
+    )
     confidence_score = float(
         feature_payload.get("confidence_score")
         if feature_payload.get("confidence_score") is not None
@@ -77,12 +92,18 @@ async def get_latest_explainability() -> ExplainabilityLatestResponse:
     waterfall_plot = _read_image_data(waterfall_plot_path)
 
     return ExplainabilityLatestResponse(
-        model_name=str(feature_payload.get("model_name") or metadata_payload.get("model_name") or production_model.model_name),
+        model_name=str(
+            feature_payload.get("model_name")
+            or metadata_payload.get("model_name")
+            or production_model.model_name
+        ),
         version=str(metadata_payload.get("version") or production_model.version),
         latest_prediction_value=float(latest_prediction_value),
         prediction_time=str(prediction_time),
         confidence_score=confidence_score,
-        explainability_status="ready" if metadata_payload.get("explainability_available") else "unavailable",
+        explainability_status=(
+            "ready" if metadata_payload.get("explainability_available") else "unavailable"
+        ),
         feature_importance=feature_payload.get("feature_importance") or {},
         ranked_features=feature_payload.get("ranked_features") or [],
         local_explanation=local_payload.get("local_explanation") or [],
@@ -105,16 +126,26 @@ async def get_latest_explainability() -> ExplainabilityLatestResponse:
 )
 async def get_feature_importance():
     """Return feature importance for the active production model."""
-    logger.info("feature_importance_requested", endpoint="/api/v1/explainability/feature-importance")
+    logger.info(
+        "feature_importance_requested",
+        endpoint="/api/v1/explainability/feature-importance",
+    )
 
     production_model = _select_latest_production_model()
     if production_model is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No Production XGBRegressor model is registered")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No Production XGBRegressor model is registered",
+        )
 
-    artifact_context = _ensure_explainability_artifacts(production_model, Path(__file__).resolve().parents[3])
+    artifact_context = _ensure_explainability_artifacts(
+        production_model, Path(__file__).resolve().parents[3]
+    )
     artifact_dir = Path(artifact_context["output_dir"]) if artifact_context else None
     if artifact_dir is None or not artifact_dir.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No explainability artifacts found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No explainability artifacts found"
+        )
 
     feature_importance_path = artifact_dir / "feature_importance.json"
     feature_payload = _read_json_file(feature_importance_path) or {}
@@ -140,12 +171,19 @@ async def get_local_explanation():
 
     production_model = _select_latest_production_model()
     if production_model is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No Production XGBRegressor model is registered")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No Production XGBRegressor model is registered",
+        )
 
-    artifact_context = _ensure_explainability_artifacts(production_model, Path(__file__).resolve().parents[3])
+    artifact_context = _ensure_explainability_artifacts(
+        production_model, Path(__file__).resolve().parents[3]
+    )
     artifact_dir = Path(artifact_context["output_dir"]) if artifact_context else None
     if artifact_dir is None or not artifact_dir.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No explainability artifacts found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No explainability artifacts found"
+        )
 
     local_explanation_path = artifact_dir / "local_explanation.json"
     local_payload = _read_json_file(local_explanation_path) or {}
@@ -205,7 +243,11 @@ async def get_shap_explanation():
 )
 async def get_explainability(model_name: str) -> ExplainabilityResponse:
     """Return explainability output for the requested production model."""
-    logger.info("explainability_requested", endpoint="/api/v1/explainability", model_name=model_name)
+    logger.info(
+        "explainability_requested",
+        endpoint="/api/v1/explainability",
+        model_name=model_name,
+    )
 
     try:
         production_model = registry_engine.select_production_model("XGBRegressor")
@@ -213,7 +255,10 @@ async def get_explainability(model_name: str) -> ExplainabilityResponse:
         artifact_context = _ensure_explainability_artifacts(production_model, repo_root)
         artifact_dir = Path(artifact_context["output_dir"]) if artifact_context else None
         if artifact_dir is None or not artifact_dir.exists():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No explainability artifacts found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No explainability artifacts found",
+            )
 
         metadata_path = artifact_dir / "metadata.json"
         feature_importance_path = artifact_dir / "feature_importance.json"
@@ -221,15 +266,25 @@ async def get_explainability(model_name: str) -> ExplainabilityResponse:
         feature_payload = _read_json_file(feature_importance_path) or {}
         if metadata_payload or feature_payload:
             return ExplainabilityResponse(
-                model_name=str(feature_payload.get("model_name") or metadata_payload.get("model_name") or model_name),
+                model_name=str(
+                    feature_payload.get("model_name")
+                    or metadata_payload.get("model_name")
+                    or model_name
+                ),
                 feature_importance=feature_payload.get("feature_importance") or {},
                 ranked_features=feature_payload.get("ranked_features") or [],
                 explanation_time_seconds=0.0,
-                explanation_method=feature_payload.get("method") or metadata_payload.get("framework") or "persisted_artifact",
+                explanation_method=(
+                    feature_payload.get("method")
+                    or metadata_payload.get("framework")
+                    or "persisted_artifact"
+                ),
                 sample_count=len(feature_payload.get("feature_importance") or {}),
             )
 
-        model = ModelPersistenceEngine().load_model(resolve_artifact_path(production_model.artifact_path))
+        model = ModelPersistenceEngine().load_model(
+            resolve_artifact_path(production_model.artifact_path)
+        )
         engine = ExplainabilityEngine()
         feature_names = _resolve_feature_names(production_model)
         result = engine.explain_model(model, model_name, feature_names or ["feature_0"])
@@ -245,11 +300,18 @@ async def get_explainability(model_name: str) -> ExplainabilityResponse:
         logger.error("model_not_found", endpoint="/api/v1/explainability", error=str(exc))
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ValueError as exc:
-        logger.error("explainability_no_xgb_model", endpoint="/api/v1/explainability", error=str(exc))
+        logger.error(
+            "explainability_no_xgb_model",
+            endpoint="/api/v1/explainability",
+            error=str(exc),
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.error("explainability_failed", endpoint="/api/v1/explainability", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="unable to generate explainability") from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="unable to generate explainability",
+        ) from exc
 
 
 def _find_latest_artifact_dir(model_name: str) -> Path | None:
@@ -338,7 +400,12 @@ def _resolve_feature_names(production_model: RegisteredModel) -> list[str]:
     return []
 
 
-def _ensure_explainability_artifacts(production_model: RegisteredModel, repo_root: Path, *, force_regenerate: bool = False) -> dict[str, Any] | None:
+def _ensure_explainability_artifacts(
+    production_model: RegisteredModel,
+    repo_root: Path,
+    *,
+    force_regenerate: bool = False,
+) -> dict[str, Any] | None:
     """Reuse or generate explainability artifacts for the active production model."""
     artifact_root = repo_root / "ml" / "artifacts" / "explainability"
     metadata_payload = dict(getattr(production_model, "metadata", {}) or {})
@@ -358,7 +425,9 @@ def _ensure_explainability_artifacts(production_model: RegisteredModel, repo_roo
         if registry_feature_importance_path:
             resolved_feature_importance_path = Path(registry_feature_importance_path)
             if not resolved_feature_importance_path.is_absolute():
-                resolved_feature_importance_path = (repo_root / resolved_feature_importance_path).resolve()
+                resolved_feature_importance_path = (
+                    repo_root / resolved_feature_importance_path
+                ).resolve()
             if resolved_feature_importance_path.exists():
                 feature_importance_path = resolved_feature_importance_path
 
