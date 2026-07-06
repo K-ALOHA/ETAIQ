@@ -63,6 +63,16 @@ class ExplainabilityArtifactGenerator:
         feature_count = registry_entry.metadata.get("feature_count", len(feature_names))
         target = registry_entry.metadata.get("target_column", "")
         
+        if not feature_names:
+            importances = getattr(model, "feature_importances_", None)
+            if importances is not None:
+                feature_names = [f"feature_{i}" for i in range(len(importances))]
+            elif hasattr(model, "n_features_in_"):
+                feature_names = [f"feature_{i}" for i in range(model.n_features_in_)]
+            else:
+                feature_names = ["feature_0"]
+            feature_count = len(feature_names)
+
         engine = ExplainabilityEngine()
         result = explanation or engine.explain_model(model, model_name, feature_names, input_data=input_data)
 
