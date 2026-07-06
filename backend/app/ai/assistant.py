@@ -486,20 +486,60 @@ class ETAIQAssistantService:
             )
         except OpenRouterClientError as exc:
             logger.warning("assistant_llm_unavailable", error=str(exc))
-            # Fallback: surface the latest prediction value if available
-            if latest_eta is not None:
-                return (
-                    f"The latest predicted ETA is **{latest_eta:.2f} minutes**. "
-                    "A detailed explanation is unavailable — the AI service could not be reached. "
-                    "Please check that OPENROUTER_API_KEY is configured."
-                )
-            return (
-                "The AI service is currently unavailable. "
-                "Please check that OPENROUTER_API_KEY is configured and try again."
-            )
+            return self._structured_fallback(m, latest_eta)
         except Exception as exc:
             logger.error("assistant_dispatch_error", error=str(exc))
             return "Something went wrong. Please try again."
+
+    def _structured_fallback(self, m: str, latest_eta: float | None) -> str:
+        """Return a structured template response when the LLM is unavailable."""
+        intent = detect_intent(m)
+        cb = self._chat_service._context_builder._builder
+
+        if intent == Intent.MODEL_INFO:
+            model = cb.get_production_model_context()
+            metrics: dict[str, Any] = model.get("metrics") or {}
+            name = model.get("name") or "XGBRegressor"
+            version = model.get("version") or "unknown"
+            mae = metrics.get("mae", "N/A")
+            rmse = metrics.get("rmse", "N/A")
+            r2 = metrics.get("r2", "N/A")
+            return (
+                f"**Production model:** {name} v{version}\n"
+                f"**MAE:** {mae} min | **RMSE:** {rmse} min | **R²:** {r2}"
+            )
+
+        if intent == Intent.DATASET_INFO:
+            dataset = cb.get_dataset_context()
+            count = dataset.get("record_count", 0)
+            features = dataset.get("feature_names") or []
+            target = dataset.get("target_column") or "actual_delivery_time_min"
+            return (
+                f"**Dataset:** {count} records, {len(features)} features.\n"
+                f"**Target column:** {target}"
+            )
+
+        if intent == Intent.FEATURE_IMPORTANCE:
+            expl = cb.get_explainability_context()
+            top = expl.get("top_features") or []
+            if top:
+                lines = [
+                    f"{i + 1}. {f['feature_name']} (importance: {f['importance']:.4f})"
+                    for i, f in enumerate(top)
+                    if f.get("feature_name") and f.get("importance") is not None
+                ]
+                return "**Top features by importance:**\n" + "\n".join(lines)
+            return "Feature importance data is not available right now."
+
+        if latest_eta is not None:
+            return (
+                f"The latest predicted ETA is **{latest_eta:.2f} minutes**. "
+                "A detailed explanation is unavailable — the AI service could not be reached."
+            )
+        return (
+            "The AI service is currently unavailable. "
+            "Please check that OPENROUTER_API_KEY is configured and try again."
+        )
 
     def _start_prediction(self, cid: str) -> str:
         total_fields = sum(len(s["fields"]) for s in _PREDICTION_SECTIONS)

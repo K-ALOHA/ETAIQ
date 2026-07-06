@@ -452,9 +452,7 @@ def _ensure_explainability_artifacts(
             }
 
     persistence_engine = ModelPersistenceEngine()
-    artifact_path = Path(production_model.artifact_path)
-    if not artifact_path.is_absolute() or not artifact_path.exists():
-        artifact_path = resolve_artifact_path(production_model.artifact_path)
+    artifact_path = resolve_artifact_path(production_model.artifact_path)
     model = persistence_engine.load_model(artifact_path)
     generator = ExplainabilityArtifactGenerator(artifacts_root=artifact_root)
     return generator.generate_for_model(model, production_model)

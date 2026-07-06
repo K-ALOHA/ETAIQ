@@ -114,11 +114,7 @@ async def predict(request: Request) -> PredictionResponse:
     try:
         start_time = time.perf_counter()
         production_model = registry_engine.select_production_model("XGBRegressor")
-        registered_path = Path(production_model.artifact_path)
-        if registered_path.is_absolute():
-            model_path = registered_path
-        else:
-            model_path = resolve_artifact_path(production_model.artifact_path)
+        model_path = resolve_artifact_path(production_model.artifact_path)
         if not model_path.exists():
             raise FileNotFoundError(f"Production artifact is missing: {model_path}")
 

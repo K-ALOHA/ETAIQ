@@ -1,9 +1,13 @@
 """Resolve model artifact paths independent of where they were originally stored.
 
-The registry may contain absolute host paths (e.g. /Users/kaloha/ETAIQ/ml/...)
-that are invalid inside Docker (/app/ml/...).  This module provides a single
-resolver that always rebuilds the path from the configured artifact directory
-using only the filename, making loading environment-agnostic.
+Resolution rules:
+- Absolute stored path  → returned as-is (caller validates existence).
+- Relative stored path  → joined with the configured MODEL_ARTIFACT_DIR.
+
+This makes test fixtures self-contained (they register absolute tmp_path
+paths that are returned unchanged) while keeping Docker / production
+behaviour unchanged (the registry stores only filenames, which are relative
+and therefore resolved through the configured artifact directory).
 """
 
 from __future__ import annotations
@@ -48,9 +52,16 @@ def _artifact_dir() -> Path:
 def resolve_artifact_path(stored_path: str | Path) -> Path:
     """Return the correct on-disk path for a model artifact.
 
-    Takes only the filename from *stored_path* and joins it with the
-    configured MODEL_ARTIFACT_DIR, so the result is always valid in the
-    current environment regardless of where the path was originally recorded.
+    If *stored_path* is absolute, return it directly — the caller is
+    responsible for checking existence.  This preserves test isolation
+    when fixtures register models under tmp_path.
+
+    If *stored_path* is relative (as stored by the production registry,
+    which persists only the filename), join it with the configured
+    MODEL_ARTIFACT_DIR so the result is valid in every environment
+    (host macOS, Docker /app/ml/, CI clean checkout).
     """
-    filename = Path(stored_path).name
-    return _artifact_dir() / filename
+    path = Path(stored_path)
+    if path.is_absolute():
+        return path
+    return _artifact_dir() / path.name
