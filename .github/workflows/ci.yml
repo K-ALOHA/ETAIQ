@@ -41,6 +41,11 @@ jobs:
 
       - name: Test (pytest)
         run: pytest --tb=short -q
+        env:
+          JWT_SECRET: ci-test-secret
+          DEBUG: "false"
+          OPENROUTER_API_KEY: ""
+          DATABASE_URL: ""
 
   # ---------------------------------------------------------------------------
   # Frontend — lint (eslint) + typecheck (tsc) + build + tests (vitest)
