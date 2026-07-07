@@ -48,7 +48,7 @@ export function Sidebar({ mobileOpen, onClose, collapsed, onToggleCollapse }: Si
         </nav>
       </div>
 
-      <aside className={`hidden h-full min-h-screen flex-col gap-6 border-r border-white/10 bg-slate-950/95 px-4 py-6 shadow-2xl shadow-black/20 backdrop-blur-xl md:flex ${collapsed ? "w-20" : "w-72"}`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 hidden flex-col gap-6 border-r border-white/10 bg-slate-950/95 px-4 py-6 shadow-2xl shadow-black/20 backdrop-blur-xl md:flex ${collapsed ? "w-20" : "w-72"}`}>
         <div className="flex items-center justify-between gap-3 px-2">
           <Link href="/dashboard" className="flex items-center gap-2 text-white">
             <div className="flex h-11 w-11 items-center justify-center rounded-3xl bg-gradient-to-br from-sky-500 to-violet-500 text-sm font-semibold shadow-lg shadow-slate-950/30">
