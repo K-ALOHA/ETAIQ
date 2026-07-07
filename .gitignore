@@ -59,6 +59,11 @@ Thumbs.db
 # ML artifacts
 ml/artifacts/*
 !ml/artifacts/.gitkeep
+
+# Track production model artifacts
+!ml/artifacts/models/
+!ml/artifacts/models/XGBRegressor_v2.joblib
+!ml/artifacts/models/XGBRegressor_v2.json
 ml/data/raw/*
 !ml/data/raw/.gitkeep
 ml/data/processed/*
