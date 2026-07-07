@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -137,6 +138,18 @@ _DATASET_TRIGGERS = {
 }
 
 
+def _matches_predict_triggers(m: str) -> bool:
+    """Match prediction triggers; use whole-word matching for bare 'predict'."""
+    for t in _PREDICT_TRIGGERS:
+        if t == "predict":
+            # Whole-word only: 'predict' must not be followed by letters (e.g. 'prediction')
+            if re.search(r"\bpredict\b", m):
+                return True
+        elif t in m:
+            return True
+    return False
+
+
 def detect_intent(message: str) -> Intent:
     """Detect user intent from a normalised message string."""
     m = message.strip().lower()
@@ -148,7 +161,7 @@ def detect_intent(message: str) -> Intent:
         return Intent.HELP
     if any(t in m for t in _EXPLAIN_TRIGGERS):
         return Intent.EXPLAIN_PREDICTION
-    if any(t in m for t in _PREDICT_TRIGGERS):
+    if _matches_predict_triggers(m):
         return Intent.PREDICT
     if any(t in m for t in _FEATURE_IMPORTANCE_TRIGGERS):
         return Intent.FEATURE_IMPORTANCE
@@ -467,7 +480,7 @@ class ETAIQAssistantService:
     async def _dispatch(
         self, cid: str, m: str, raw: str, history: list[dict[str, str]]
     ) -> str:
-        if any(t in m for t in _PREDICT_TRIGGERS):
+        if detect_intent(m) == Intent.PREDICT:
             return self._start_prediction(cid)
 
         # Provide latest prediction value as context hint for explain intents

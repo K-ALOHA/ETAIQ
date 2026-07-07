@@ -161,6 +161,51 @@ def test_intent_detection() -> None:
     assert service._detect_intent("random question") == Intent.UNKNOWN
 
 
+def test_predict_intent_whole_word_matching() -> None:
+    """'predict' as a whole word triggers PREDICT; 'prediction' substrings do not."""
+    from app.ai.assistant import detect_intent
+
+    # Must trigger PREDICT
+    assert detect_intent("predict") == Intent.PREDICT
+    assert detect_intent("predict eta") == Intent.PREDICT
+    assert detect_intent("predict delivery") == Intent.PREDICT
+    assert detect_intent("make prediction") == Intent.PREDICT
+    assert detect_intent("start prediction") == Intent.PREDICT
+    assert detect_intent("run prediction") == Intent.PREDICT
+    assert detect_intent("new prediction") == Intent.PREDICT
+
+    # Must NOT trigger PREDICT — these contain 'prediction' not 'predict' as a word
+    assert detect_intent("prediction") != Intent.PREDICT
+    assert detect_intent("predictions") != Intent.PREDICT
+    assert detect_intent("latest prediction") != Intent.PREDICT
+    assert detect_intent("explain prediction") != Intent.PREDICT
+    assert detect_intent("explain latest prediction") != Intent.PREDICT
+    assert detect_intent("why was my prediction high") != Intent.PREDICT
+
+
+@pytest.mark.asyncio
+async def test_explain_prediction_message_does_not_start_flow() -> None:
+    """Messages containing 'prediction' but not 'predict' must not start the guided flow."""
+    service = ETAIQAssistantService()
+
+    for msg in [
+        "Explain the latest prediction",
+        "Explain latest prediction model",
+        "Why was the latest prediction high?",
+        "Explain prediction",
+    ]:
+        conv_id = f"test_no_flow_{msg[:10]}"
+        response = await service.handle_message(
+            AssistantRequest(message=msg, conversation_id=conv_id)
+        )
+        assert not _in_prediction(service, conv_id), (
+            f"Message '{msg}' incorrectly started the prediction flow"
+        )
+        assert "Section 1" not in response.response, (
+            f"Message '{msg}' returned prediction flow response"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Explain prediction — no prior prediction
 # ---------------------------------------------------------------------------
